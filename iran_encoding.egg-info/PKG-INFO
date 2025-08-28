@@ -13,6 +13,8 @@ Requires-Python: >=3.6
 Description-Content-Type: text/markdown
 License-File: LICENSE
 Requires-Dist: websockets>=10.0
+Requires-Dist: arabic_reshaper
+Requires-Dist: python-bidi
 Dynamic: author
 Dynamic: author-email
 Dynamic: classifier
@@ -44,7 +46,7 @@ This library provides a direct mapping from Unicode characters to the custom Ira
 To install the package directly from GitHub:
 
 ```bash
-pip install git+https://github.com/movtigroup/Iran-System-encoding.git
+pip install iran-encoding
 ```
 
 ## Library Usage
