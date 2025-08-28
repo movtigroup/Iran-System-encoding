@@ -15,6 +15,7 @@ def main():
     # Encode command
     encode_parser = subparsers.add_parser("encode", help="Encode a string.")
     encode_parser.add_argument("text", type=str, help="The string to encode.")
+    encode_parser.add_argument("--logical", action="store_true", help="Output in logical order instead of visual order.")
 
     # Decode command
     decode_parser = subparsers.add_parser("decode", help="Decode a byte string.")
@@ -38,10 +39,10 @@ def main():
 
     if args.command == "encode":
         try:
-            encoded_result = encode(args.text)
-            # Print the raw bytes to stdout
-            import sys
-            sys.stdout.buffer.write(encoded_result)
+            encoded_result = encode(args.text, visual_ordering=not args.logical)
+            # Print a space-separated hex string
+            hex_output = " ".join(f"{b:02x}" for b in encoded_result)
+            print(hex_output)
         except ValueError as e:
             print(f"Error: {e}")
             exit(1)

@@ -31,7 +31,11 @@ The library provides simple `encode()` and `decode()` functions.
 
 ### Example 1: Encoding Persian Text
 
-The `encode` function takes a logical string (like what you would type) and returns the visually correct byte representation in the Iran System encoding.
+The `encode` function takes a logical string (like what you would type) and returns the byte representation in the Iran System encoding. By default, it produces a *visually ordered* output suitable for simple LTR displays.
+
+You can control this behavior with the `visual_ordering` parameter:
+- `encode(text, visual_ordering=True)` (default): Returns a visually ordered string.
+- `encode(text, visual_ordering=False)`: Returns a logically ordered string (for systems that handle bidi).
 
 ```python
 from iran_encoding import encode, decode
@@ -74,7 +78,12 @@ You can also use the package from the command line.
 ```bash
 iran-encoding encode "Test: تست"
 ```
-This will print the raw encoded bytes to standard output.
+This will print a space-separated hex string of the encoded text in visual order.
+
+To get the output in logical order, use the `--logical` flag:
+```bash
+iran-encoding encode "Test: تست" --logical
+```
 
 ### `decode`
 
