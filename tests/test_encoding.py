@@ -66,6 +66,35 @@ class TestIranSystemEncoding(unittest.TestCase):
         self.assertEqual(encode(""), b"")
         self.assertEqual(decode(b""), "")
 
+    def test_all_known_chars_roundtrip(self):
+        """
+        Test that all characters in the IRAN_SYSTEM_MAP can be round-tripped.
+        This test does not check for visual correctness, but for the integrity
+        of the forward and reverse mappings.
+        """
+        for code, char in IRAN_SYSTEM_MAP.items():
+            if len(char) == 1: # Skip multi-char sequences for this test
+                with self.subTest(char=char, code=hex(code)):
+                    # We are testing the raw mapping here, so we encode the
+                    # presentation form character directly.
+                    encoded_char = encode(char)
+
+                    # The encoded byte should be the original code.
+                    # This verifies the REVERSE_IRAN_SYSTEM_MAP.
+                    if len(encoded_char) > 0: # reshaper can return empty for some chars
+                        self.assertEqual(len(encoded_char), 1)
+                        self.assertEqual(encoded_char[0], code)
+
+                        # Now decode the byte back to a character.
+                        decoded_char = decode(encoded_char)
+
+                        # The decoded character, after normalization, should match
+                        # the normalized version of the original character.
+                        # This verifies the IRAN_SYSTEM_MAP and the decode logic.
+                        import unicodedata
+                        normalized_original = unicodedata.normalize('NFKD', char)
+                        self.assertEqual(decoded_char, normalized_original)
+
     def test_decode_hex(self):
         """Test decoding from a hex string."""
         text = "Test: تست"
@@ -84,6 +113,43 @@ class TestIranSystemEncoding(unittest.TestCase):
         encoded = encode(text)
         decoded = decode(encoded)
         self.assertEqual(text, decoded)
+
+    def test_phrase_daqiqe_digar(self):
+        """Test another specific phrase."""
+        text = "دقیقه دیگر"
+        encoded = encode(text)
+        decoded = decode(encoded)
+        self.assertEqual(text, decoded)
+
+    def test_phrase_montazer_otoboos(self):
+        """Test a longer sentence."""
+        text = "منتظر اتوبوس بعدی باشید"
+        encoded = encode(text)
+        decoded = decode(encoded)
+        self.assertEqual(text, decoded)
+
+    def test_phrase_otoboos_dar_hal(self):
+        """Test another longer sentence."""
+        text = "اتوبوس در حال ورود به ایستگاه"
+        encoded = encode(text)
+        decoded = decode(encoded)
+        self.assertEqual(text, decoded)
+
+    def test_visual_ordering_flag(self):
+        """Test the visual_ordering flag in the encode function."""
+        text = "سلام"
+
+        # Test with visual_ordering=True (default)
+        encoded_visual = encode(text, visual_ordering=True)
+        # Expected: visual order (reversed) of shaped "سلام"
+        # ﻡ(f4) ﺎ(91) ﻠ(f3) ﺳ(a8)
+        self.assertEqual(encoded_visual, b'\xf4\x91\xf3\xa8')
+
+        # Test with visual_ordering=False
+        encoded_logical = encode(text, visual_ordering=False)
+        # Expected: logical order of shaped "سلام"
+        # ﺳ(a8) ﻠ(f3) ﺎ(91) ﻡ(f4)
+        self.assertEqual(encoded_logical, b'\xa8\xf3\x91\xf4')
 
 if __name__ == "__main__":
     unittest.main()
