@@ -18,7 +18,7 @@ This library provides a direct mapping from Unicode characters to the custom Ira
 To install the package directly from GitHub:
 
 ```bash
-pip install git+https://github.com/movtigroup/Iran-System-encoding.git
+pip install iran-encoding
 ```
 
 ## Library Usage
