@@ -53,8 +53,12 @@ IRAN_SYSTEM_MAP = {
 }
 
 # Create a reverse map for encoding: from character to hex code.
-# Note: Some characters map to multiple codes. We take the first one found.
-REVERSE_IRAN_SYSTEM_MAP = {char: code for code, char in IRAN_SYSTEM_MAP.items() if len(char) == 1}
+# We iterate through the map and overwrite entries. This ensures that the *last*
+# occurrence of a character in the map is the one that is used.
+REVERSE_IRAN_SYSTEM_MAP = {}
+for code, char in IRAN_SYSTEM_MAP.items():
+    if len(char) == 1:
+        REVERSE_IRAN_SYSTEM_MAP[char] = code
 
 # Define a fallback character code for characters not in the map.
 UNKNOWN_CHAR_CODE = REVERSE_IRAN_SYSTEM_MAP.get('?', 0x3F)

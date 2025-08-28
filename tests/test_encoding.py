@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import unittest
-from iran_encoding import encode, decode
+from iran_encoding import encode, decode, decode_hex
 from iran_encoding.mappings import REVERSE_IRAN_SYSTEM_MAP, IRAN_SYSTEM_MAP
 
 class TestIranSystemEncoding(unittest.TestCase):
@@ -75,6 +75,18 @@ class TestIranSystemEncoding(unittest.TestCase):
                 encoded = encode(char)
                 decoded = decode(encoded)
                 self.assertEqual(char, decoded)
+
+    def test_decode_hex(self):
+        """Test decoding from a hex string."""
+        text = "Test: تست"
+        encoded = encode(text)
+        hex_string = encoded.hex()
+        decoded = decode_hex(hex_string)
+        self.assertEqual(text, decoded)
+
+    def test_decode_hex_invalid_string(self):
+        """Test decoding from an invalid hex string."""
+        self.assertIn("Error", decode_hex("invalid hex"))
 
 if __name__ == "__main__":
     unittest.main()
