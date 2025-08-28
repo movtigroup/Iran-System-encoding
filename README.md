@@ -1,7 +1,5 @@
 # Iran System Encoding
-
-[![CI](https://github.com/movtigroup/Iran-System-encoding/actions/workflows/ci.yml/badge.svg)](https://github.com/movtigroup/Iran-System-encoding/actions/workflows/ci.yml)
-[![Upload Python Package](https://github.com/movtigroup/Iran-System-encoding/actions/workflows/python-publish.yml/badge.svg?branch=main)](https://github.com/movtigroup/Iran-System-encoding/actions/workflows/python-publish.yml)
+[![Python package CI](https://github.com/movtigroup/Iran-System-encoding/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/movtigroup/Iran-System-encoding/actions/workflows/ci.yml)[![Python Package using Conda](https://github.com/movtigroup/Iran-System-encoding/actions/workflows/python-package-conda.yml/badge.svg)](https://github.com/movtigroup/Iran-System-encoding/actions/workflows/python-package-conda.yml)
 
 A Python package for encoding and decoding text using the Iran System character set, designed for environments like NDS Station Displays.
 
