@@ -6,6 +6,7 @@ character set, including bidirectional text handling.
 """
 
 import re
+import unicodedata
 from typing import List
 from .mappings import IRAN_SYSTEM_MAP, REVERSE_IRAN_SYSTEM_MAP, UNKNOWN_CHAR_CODE
 
@@ -78,7 +79,8 @@ def decode(data: bytes) -> str:
     # Reverse RTL segments for visual-to-logical conversion
     logical_text = _process_bidi(visual_text, reverse_rtl=True)
 
-    return logical_text
+    # Normalize presentation forms to base characters
+    return unicodedata.normalize('NFKD', logical_text)
 
 def decode_hex(hex_string: str) -> str:
     """

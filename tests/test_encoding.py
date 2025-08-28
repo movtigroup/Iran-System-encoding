@@ -68,13 +68,16 @@ class TestIranSystemEncoding(unittest.TestCase):
 
     def test_all_known_chars_roundtrip(self):
         """Test that all single characters in the map can be round-tripped."""
+        import unicodedata
         known_chars = [char for char in REVERSE_IRAN_SYSTEM_MAP.keys() if len(char) == 1]
 
         for char in known_chars:
             with self.subTest(char=char):
                 encoded = encode(char)
                 decoded = decode(encoded)
-                self.assertEqual(char, decoded)
+                # Normalize the input character for comparison, since decode() normalizes the output
+                normalized_char = unicodedata.normalize('NFKD', char)
+                self.assertEqual(normalized_char, decoded)
 
     def test_decode_hex(self):
         """Test decoding from a hex string."""
@@ -87,6 +90,13 @@ class TestIranSystemEncoding(unittest.TestCase):
     def test_decode_hex_invalid_string(self):
         """Test decoding from an invalid hex string."""
         self.assertIn("Error", decode_hex("invalid hex"))
+
+    def test_specific_phrase_roundtrip(self):
+        """Test a specific phrase requested by the user."""
+        text = "دقیق دیگر"
+        encoded = encode(text)
+        decoded = decode(encoded)
+        self.assertEqual(text, decoded)
 
 if __name__ == "__main__":
     unittest.main()
