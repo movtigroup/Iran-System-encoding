@@ -20,6 +20,9 @@ setup(
         "Topic :: Text Processing :: General",
     ],
     python_requires=">=3.6",
+    install_requires=[
+        "websockets>=10.0",
+    ],
     entry_points={
         "console_scripts": [
             "iran-encoding=iran_encoding.cli:main",

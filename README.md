@@ -93,3 +93,35 @@ iran-encoding decode "b'\\x54\\x65\\x73\\x74\\x3a\\x20\\x91\\x9d\\x8f'"
 This will print the decoded string: `Test: تست`
 
 **Note**: You need to wrap the byte string in quotes (`" "`) and prefix it with `b''` to ensure it is correctly parsed by the command line.
+
+### `decode-hex`
+
+The `decode-hex` command decodes a string of hexadecimal characters into text.
+
+```bash
+iran-encoding decode-hex 546573743a20919d8f
+```
+This will print the decoded string: `Test: تست`
+
+## WebSocket Support
+
+This library also provides WebSocket support for both a server and a client.
+
+### WebSocket Server
+
+You can start a WebSocket server that will listen for incoming messages and encode or decode them.
+
+```bash
+iran-encoding ws-server --host 0.0.0.0 --port 8765
+```
+
+The server expects messages in the format `"command:data"`, where `command` is one of `encode`, `decode`, or `decode-hex`.
+
+### WebSocket Client
+
+You can use the WebSocket client to send a message to the server and receive the response.
+
+```bash
+iran-encoding ws-client ws://localhost:8765 "encode:سلام"
+```
+This will send the message `"encode:سلام"` to the server and print the response.

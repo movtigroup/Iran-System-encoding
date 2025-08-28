@@ -79,3 +79,19 @@ def decode(data: bytes) -> str:
     logical_text = _process_bidi(visual_text, reverse_rtl=True)
 
     return logical_text
+
+def decode_hex(hex_string: str) -> str:
+    """
+    Decodes a hex string into a UTF-8 string using the Iran System map.
+
+    Args:
+        hex_string: The input hex string to decode.
+
+    Returns:
+        The decoded string.
+    """
+    try:
+        data = bytes.fromhex(hex_string)
+        return decode(data)
+    except (ValueError, TypeError):
+        return "Error: Invalid hex string"
