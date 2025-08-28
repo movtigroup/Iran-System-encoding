@@ -96,7 +96,7 @@ EXTRA_PRESENTATION_FORMS = {
     # Dad
     'ﻀ': 0xAE, 'ﺾ': 0xAD,
     # Tah
-    'ﻂ': 0xAF,
+    'ﻁ': 0xAF, 'ﻂ': 0xAF, 'ﻃ': 0xAF, 'ﻄ': 0xAF,
     # Zah
     'ﻇ': 0xE0, 'ﻈ': 0xE0, 'ﻆ': 0xE0,
     # Ain

@@ -4,6 +4,7 @@ This module provides the command-line interface for the iran-encoding package.
 import argparse
 import ast
 import asyncio
+import json
 from iran_encoding import encode, decode, decode_hex
 from . import websockets as ws
 
@@ -16,6 +17,7 @@ def main():
     encode_parser = subparsers.add_parser("encode", help="Encode a string.")
     encode_parser.add_argument("text", type=str, help="The string to encode.")
     encode_parser.add_argument("--logical", action="store_true", help="Output in logical order instead of visual order.")
+    encode_parser.add_argument("--config", type=str, help="A JSON string with configuration options for the reshaper.")
 
     # Decode command
     decode_parser = subparsers.add_parser("decode", help="Decode a byte string.")
@@ -39,7 +41,8 @@ def main():
 
     if args.command == "encode":
         try:
-            encoded_result = encode(args.text, visual_ordering=not args.logical)
+            config = json.loads(args.config) if args.config else None
+            encoded_result = encode(args.text, visual_ordering=not args.logical, configuration=config)
             # Print a space-separated hex string
             hex_output = " ".join(f"{b:02x}" for b in encoded_result)
             print(hex_output)

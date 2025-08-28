@@ -12,7 +12,7 @@ import arabic_reshaper
 from bidi.algorithm import get_display
 from .mappings import IRAN_SYSTEM_MAP, REVERSE_IRAN_SYSTEM_MAP, UNKNOWN_CHAR_CODE
 
-def encode(text: str, visual_ordering: bool = True) -> bytes:
+def encode(text: str, visual_ordering: bool = True, configuration: dict = None) -> bytes:
     """
     Encodes a string into a sequence of bytes using the Iran System map.
     It handles text shaping and optional visual reordering for RTL text.
@@ -22,6 +22,8 @@ def encode(text: str, visual_ordering: bool = True) -> bytes:
         visual_ordering: If True (default), produces a visually ordered output
             for simple LTR displays. If False, produces a logically ordered
             output for systems that support bidi.
+        configuration: A dictionary of configuration options for the
+            `arabic_reshaper` library.
 
     Returns:
         A bytes object representing the encoded string.
@@ -29,10 +31,14 @@ def encode(text: str, visual_ordering: bool = True) -> bytes:
     if not isinstance(text, str):
         return b''
 
+    # ZWNJ is not supported by the Iran System encoding, so we remove it.
+    text = text.replace('\u200c', '')
+
     # Configure the reshaper
-    configuration = {
-        'support_ligatures': False,
-    }
+    if configuration is None:
+        configuration = {
+            'support_ligatures': False,
+        }
     reshaper = arabic_reshaper.ArabicReshaper(configuration=configuration)
 
     # Reshape the text to get correct presentation forms
@@ -63,7 +69,10 @@ def encode(text: str, visual_ordering: bool = True) -> bytes:
 
     byte_codes = []
     for char in output_text:
-        code = REVERSE_IRAN_SYSTEM_MAP.get(char, UNKNOWN_CHAR_CODE)
+        code = REVERSE_IRAN_SYSTEM_MAP.get(char)
+        if code is None:
+            # print(f"Character not found in reverse map: '{char}' (U+{ord(char):04X})")
+            code = UNKNOWN_CHAR_CODE
         byte_codes.append(code)
 
     return bytes(byte_codes)
