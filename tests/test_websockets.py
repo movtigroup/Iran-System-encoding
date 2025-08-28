@@ -19,13 +19,13 @@ class TestWebSockets(unittest.TestCase):
             websocket.send.assert_called_once_with(expected_response)
 
     def test_handler_encode(self):
-        asyncio.run(self.run_handler_test("encode:سلام", "ed8ef8e5"))
+        asyncio.run(self.run_handler_test("encode:سلام", "f491f3a8"))
 
     def test_handler_decode(self):
-        asyncio.run(self.run_handler_test("decode:ed8ef8e5", "سلام"))
+        asyncio.run(self.run_handler_test("decode:f491f3a8", "سلام"))
 
     def test_handler_decode_hex(self):
-        asyncio.run(self.run_handler_test("decode_hex:ed8ef8e5", "سلام"))
+        asyncio.run(self.run_handler_test("decode_hex:f491f3a8", "سلام"))
 
     def test_handler_unknown_command(self):
         asyncio.run(self.run_handler_test("unknown:test", "Error: Unknown command 'unknown'"))
