@@ -22,6 +22,8 @@ setup(
     python_requires=">=3.6",
     install_requires=[
         "websockets>=10.0",
+        "arabic_reshaper",
+        "python-bidi",
     ],
     entry_points={
         "console_scripts": [

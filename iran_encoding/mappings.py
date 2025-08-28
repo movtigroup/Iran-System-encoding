@@ -53,26 +53,127 @@ IRAN_SYSTEM_MAP = {
 }
 
 # Create a reverse map for encoding: from character to hex code.
-# We iterate through the map and overwrite entries. This ensures that the *last*
-# occurrence of a character in the map is the one that is used.
-REVERSE_IRAN_SYSTEM_MAP = {}
-for code, char in IRAN_SYSTEM_MAP.items():
-    if len(char) == 1:
-        REVERSE_IRAN_SYSTEM_MAP[char] = code
-# Mappings for base characters to their isolated form hex codes for encoding.
-BASE_CHAR_MAP = {
-    'ا': 0x90, 'آ': 0x8D, 'ب': 0x92, 'پ': 0x94, 'ت': 0x96, 'ث': 0x98,
-    'ج': 0x9A, 'چ': 0x9C, 'ح': 0x9E, 'خ': 0xA0, 'د': 0xA2, 'ذ': 0xA3,
-    'ر': 0xA4, 'ز': 0xA5, 'ژ': 0xA6, 'س': 0xA7, 'ش': 0xA9, 'ص': 0xAB,
-    'ض': 0xAD, 'ط': 0xAF, 'ظ': 0xE0, 'ع': 0xE1, 'غ': 0xE5, 'ف': 0xE9,
-    'ق': 0xEB, 'ک': 0xED, 'گ': 0xEF, 'ل': 0xF1, 'م': 0xF4, 'ن': 0xF6,
-    'و': 0xF8, 'ه': 0xF9, 'ی': 0xFD, 'ء': 0x8F, 'ئ': 0x8E,
-    # Persian numbers
-    '۰': 0x80, '۱': 0x81, '۲': 0x82, '۳': 0x83, '۴': 0x84, '۵': 0x85,
-    '۶': 0x86, '۷': 0x87, '۸': 0x88, '۹': 0x89,
-    # Other characters
-    '،': 0x8A, '؟': 0x8C,
+# This map is manually created to handle all presentation forms produced by
+# the arabic_reshaper library.
+REVERSE_IRAN_SYSTEM_MAP = {
+    # ASCII characters
+    **{chr(i): i for i in range(128)},
+
+    # Persian Numbers
+    '۰': 0x80, '۱': 0x81, '۲': 0x82, '۳': 0x83, '۴': 0x84,
+    '۵': 0x85, '۶': 0x86, '۷': 0x87, '۸': 0x88, '۹': 0x89,
+
+    # Punctuation
+    '،': 0x8A, 'ـ': 0x8B, '؟': 0x8C,
+
+    # Alef with Madda
+    'ﺁ': 0x8D,
+
+    # Hamza
+    'ء': 0x8F,
+
+    # Alef
+    'ﺍ': 0x90, 'ﺎ': 0x91,
+
+    # Beh
+    'ﺏ': 0x92, 'ﺑ': 0x93, 'ﺒ': 0x93, 'ﺐ': 0x92,
+
+    # Peh
+    'ﭖ': 0x94, 'ﭘ': 0x95, 'ﭙ': 0x95, 'ﭗ': 0x94,
+
+    # Teh
+    'ﺕ': 0x96, 'ﺗ': 0x97, 'ﺘ': 0x97, 'ﺖ': 0x96,
+
+    # Theh
+    'ﺙ': 0x98, 'ﺛ': 0x99, 'ﺜ': 0x99, 'ﺚ': 0x98,
+
+    # Jeem
+    'ﺝ': 0x9A, 'ﺟ': 0x9B, 'ﺠ': 0x9B, 'ﺞ': 0x9A,
+
+    # Tcheh
+    'ﭺ': 0x9C, 'ﭼ': 0x9D, 'ﭽ': 0x9D, 'ﭻ': 0x9C,
+
+    # Hah
+    'ﺡ': 0x9E, 'ﺣ': 0x9F, 'ﺤ': 0x9F, 'ﺢ': 0x9E,
+
+    # Khah
+    'ﺥ': 0xA0, 'ﺧ': 0xA1, 'ﺨ': 0xA1, 'ﺦ': 0xA0,
+
+    # Dal
+    'ﺩ': 0xA2, 'ﺪ': 0xA2,
+
+    # Thal
+    'ﺫ': 0xA3, 'ﺬ': 0xA3,
+
+    # Reh
+    'ﺭ': 0xA4, 'ﺮ': 0xA4,
+
+    # Zain
+    'ﺯ': 0xA5, 'ﺰ': 0xA5,
+
+    # Jeh
+    'ﮊ': 0xA6, 'ﮋ': 0xA6,
+
+    # Seen
+    'ﺱ': 0xA7, 'ﺳ': 0xA8, 'ﺴ': 0xA8, 'ﺲ': 0xA7,
+
+    # Sheen
+    'ﺵ': 0xA9, 'ﺷ': 0xAA, 'ﺸ': 0xAA, 'ﺶ': 0xA9,
+
+    # Sad
+    'ﺹ': 0xAB, 'ﺻ': 0xAC, 'ﺼ': 0xAC, 'ﺺ': 0xAB,
+
+    # Dad
+    'ﺽ': 0xAD, 'ﺿ': 0xAE, 'ﻀ': 0xAE, 'ﺾ': 0xAD,
+
+    # Tah
+    'ﻁ': 0xAF, 'ﻂ': 0xAF,
+
+    # Zah
+    'ﻅ': 0xE0, 'ﻆ': 0xE0,
+
+    # Ain
+    'ﻉ': 0xE1, 'ﻋ': 0xE4, 'ﻌ': 0xE3, 'ﻊ': 0xE2,
+
+    # Ghain
+    'ﻍ': 0xE5, 'ﻏ': 0xE8, 'ﻐ': 0xE7, 'ﻎ': 0xE6,
+
+    # Feh
+    'ﻑ': 0xE9, 'ﻓ': 0xEA, 'ﻔ': 0xEA, 'ﻒ': 0xE9,
+
+    # Qaf
+    'ﻕ': 0xEB, 'ﻗ': 0xEC, 'ﻘ': 0xEC, 'ﻖ': 0xEB,
+
+    # Keheh (Kaf)
+    'ﮎ': 0xED, 'ﮐ': 0xEE, 'ﮑ': 0xEE, 'ﮏ': 0xED,
+
+    # Gaf
+    'ﮒ': 0xEF, 'ﮔ': 0xF0, 'ﮕ': 0xF0, 'ﮓ': 0xEF,
+
+    # Lam
+    'ﻝ': 0xF1, 'ﻟ': 0xF3, 'ﻠ': 0xF3, 'ﻞ': 0xF1,
+
+    # Meem
+    'ﻡ': 0xF4, 'ﻣ': 0xF5, 'ﻤ': 0xF5, 'ﻢ': 0xF4,
+
+    # Noon
+    'ﻥ': 0xF6, 'ﻧ': 0xF7, 'ﻨ': 0xF7, 'ﻦ': 0xF6,
+
+    # Waw
+    'ﻭ': 0xF8, 'ﻮ': 0xF8,
+
+    # Heh
+    'ﻩ': 0xF9, 'ﻫ': 0xFB, 'ﻬ': 0xFA, 'ﻪ': 0xF9,
+
+    # Yeh with Hamza
+    'ﺋ': 0x8E, 'ﺌ': 0x8E,
+
+    # Yeh
+    'ﯼ': 0xFD, 'ﯾ': 0xFE, 'ﯿ': 0xFE, 'ﯽ': 0xFC,
+
+    # Ligatures
+    'ﻻ': 0xF2,
 }
-REVERSE_IRAN_SYSTEM_MAP.update(BASE_CHAR_MAP)
+
 # Define a fallback character code for characters not in the map.
-UNKNOWN_CHAR_CODE = REVERSE_IRAN_SYSTEM_MAP.get('?', 0x3F)
+UNKNOWN_CHAR_CODE = 0x3F

@@ -8,6 +8,8 @@ character set, including bidirectional text handling.
 import re
 import unicodedata
 from typing import List
+import arabic_reshaper
+from bidi.algorithm import get_display
 from .mappings import IRAN_SYSTEM_MAP, REVERSE_IRAN_SYSTEM_MAP, UNKNOWN_CHAR_CODE
 
 # This regex finds sequences of RTL characters (Arabic, Persian, etc.).
@@ -19,7 +21,9 @@ def _process_bidi(text: str, reverse_rtl: bool) -> str:
     parts = RTL_CHAR_PATTERN.split(text)
     processed_parts = []
     for part in parts:
-        if RTL_CHAR_PATTERN.match(part):
+        is_rtl = RTL_CHAR_PATTERN.match(part)
+        # print(f"Part: '{part}', Is RTL: {is_rtl}")
+        if is_rtl:
             # This is an RTL segment
             if reverse_rtl:
                 processed_parts.append(part[::-1])
@@ -44,8 +48,30 @@ def encode(text: str) -> bytes:
     if not isinstance(text, str):
         return b''
 
-    # Reverse RTL segments for logical-to-visual conversion
-    visual_text = _process_bidi(text, reverse_rtl=True)
+    # Configure the reshaper to not use ligatures
+    configuration = {
+        'support_ligatures': False,
+    }
+    reshaper = arabic_reshaper.ArabicReshaper(configuration=configuration)
+
+    parts = RTL_CHAR_PATTERN.split(text)
+    processed_parts = []
+    for part in parts:
+        if RTL_CHAR_PATTERN.match(part):
+            # This is an RTL segment, reshape and apply bidi
+            reshaped_part = reshaper.reshape(part)
+            # A bit of a hack for Persian numbers, which bidi.get_display doesn't seem to handle correctly.
+            is_all_digits = all('\u06F0' <= c <= '\u06F9' for c in part)
+            if is_all_digits:
+                visual_part = reshaped_part[::-1]
+            else:
+                visual_part = get_display(reshaped_part, base_dir='R')
+            processed_parts.append(visual_part)
+        else:
+            # This is an LTR segment, no change needed
+            processed_parts.append(part)
+
+    visual_text = "".join(processed_parts)
 
     byte_codes = []
     for char in visual_text:
