@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="iran-encoding",
-    version="0.1.0",
+    version="0.2.0",
     author="Jules",
     author_email="jules@example.com",
     description="Two-stage encoding for Persian text.",
