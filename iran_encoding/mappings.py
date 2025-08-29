@@ -26,7 +26,7 @@ IRAN_SYSTEM_MAP = {
     0x68: "h", 0x69: "i", 0x6A: "j", 0x6B: "k", 0x6C: "l", 0x6D: "m", 0x6E: "n", 0x6F: "o",
     0x70: "p", 0x71: "q", 0x72: "r", 0x73: "s", 0x74: "t", 0x75: "u", 0x76: "v", 0x77: "w",
     0x78: "x", 0x79: "y", 0x7A: "z", 0x7B: "{", 0x7C: "|", 0x7D: "}", 0x7E: "~", 0x7F: "⌂",
-    # Row 8x (Persian characters and numbers from Wikipedia)
+    # Row 8x (Persian numbers)
     0x80: "۰", 0x81: "۱", 0x82: "۲", 0x83: "۳", 0x84: "۴", 0x85: "۵", 0x86: "۶", 0x87: "۷",
     0x88: "۸", 0x89: "۹", 0x8A: "،", 0x8B: "ـ", 0x8C: "؟", 0x8D: "ﺁ", 0x8E: "ﺋ", 0x8F: "ﺀ",
     # Row 9x
@@ -49,7 +49,7 @@ IRAN_SYSTEM_MAP = {
     0xE8: "ﻏ", 0xE9: "ﻑ", 0xEA: "ﻓ", 0xEB: "ﻕ", 0xEC: "ﻗ", 0xED: "ﮎ", 0xEE: "ﮐ", 0xEF: "ﮒ",
     # Row Fx
     0xF0: "ﮔ", 0xF1: "ﻝ", 0xF2: "ﻻ", 0xF3: "ﻟ", 0xF4: "ﻡ", 0xF5: "ﻣ", 0xF6: "ﻥ", 0xF7: "ﻧ",
-    0xF8: "ﻭ", 0xF9: "ﻩ", 0xFA: "ﻬ", 0xFB: "ﻫ", 0xFC: "ﯽ", 0xFD: "ﯼ", 0xFE: "ﯾ", 0xFF: "NBSP",
+    0xF8: "ﻭ", 0xF9: "ﻩ", 0xFA: "ﻬ", 0xFB: "ﻫ", 0xFC: "ﯽ", 0xFD: "ﯼ", 0xFE: "ﯾ", 0xFF: "\u00A0",  # NBSP (Non-Breaking Space)
 }
 
 # Create a reverse map for encoding: from character to hex code.
@@ -57,7 +57,9 @@ IRAN_SYSTEM_MAP = {
 REVERSE_IRAN_SYSTEM_MAP = {}
 for code, char in IRAN_SYSTEM_MAP.items():
     if len(char) == 1:
-        REVERSE_IRAN_SYSTEM_MAP[char] = code
+        # Only add the first occurrence to preserve the original mapping
+        if char not in REVERSE_IRAN_SYSTEM_MAP:
+            REVERSE_IRAN_SYSTEM_MAP[char] = code
 
 # Add extra presentation forms for arabic_reshaper
 EXTRA_PRESENTATION_FORMS = {
@@ -96,7 +98,7 @@ EXTRA_PRESENTATION_FORMS = {
     # Dad
     'ﻀ': 0xAE, 'ﺾ': 0xAD,
     # Tah
-    'ﻂ': 0xAF,
+    'ﻁ': 0xAF, 'ﻂ': 0xAF, 'ﻃ': 0xAF, 'ﻄ': 0xAF,
     # Zah
     'ﻇ': 0xE0, 'ﻈ': 0xE0, 'ﻆ': 0xE0,
     # Ain
@@ -128,6 +130,16 @@ EXTRA_PRESENTATION_FORMS = {
 }
 REVERSE_IRAN_SYSTEM_MAP.update(EXTRA_PRESENTATION_FORMS)
 
+# Iran System specific character mappings (from C code inspiration)
+IRAN_SYSTEM_UNICODE_NUMBERS = {
+    '0': 0x80, '1': 0x81, '2': 0x82, '3': 0x83, '4': 0x84, 
+    '5': 0x85, '6': 0x86, '7': 0x87, '8': 0x88, '9': 0x89
+}
+
+UNICODE_IRAN_SYSTEM_NUMBERS = {
+    0x30: '۰', 0x31: '۱', 0x32: '۲', 0x33: '۳', 0x34: '۴',
+    0x35: '۵', 0x36: '۶', 0x37: '۷', 0x38: '۸', 0x39: '۹'
+}
 
 # Define a fallback character code for characters not in the map.
 UNKNOWN_CHAR_CODE = REVERSE_IRAN_SYSTEM_MAP.get('?', 0x3F)

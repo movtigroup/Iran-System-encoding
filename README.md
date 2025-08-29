@@ -85,6 +85,11 @@ To get the output in logical order, use the `--logical` flag:
 iran-encoding encode "Test: تست" --logical
 ```
 
+You can also provide a JSON string with configuration options for the `arabic_reshaper` library using the `--config` flag. For example, to enable ligatures:
+```bash
+iran-encoding encode "سلام" --config '{"support_ligatures": true}'
+```
+
 ### `decode`
 
 The `decode` command requires the input to be a Python bytes literal string.

@@ -7,11 +7,11 @@ setup(
     name="iran-encoding",
     version="0.2.0",
     author="Jules",
-    author_email="jules@example.com",
+    author_email="jules@movtigroup.ir",
     description="Two-stage encoding for Persian text.",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/example/iran-encoding",
+    url="https://github.com/movtigroup/Iran-System-encoding",
     packages=find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",

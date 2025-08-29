@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: iran-encoding
-Version: 0.1.0
+Version: 0.2.0
 Summary: Two-stage encoding for Persian text.
 Home-page: https://github.com/example/iran-encoding
 Author: Jules
@@ -111,6 +111,11 @@ This will print a space-separated hex string of the encoded text in visual order
 To get the output in logical order, use the `--logical` flag:
 ```bash
 iran-encoding encode "Test: تست" --logical
+```
+
+You can also provide a JSON string with configuration options for the `arabic_reshaper` library using the `--config` flag. For example, to enable ligatures:
+```bash
+iran-encoding encode "سلام" --config '{"support_ligatures": true}'
 ```
 
 ### `decode`

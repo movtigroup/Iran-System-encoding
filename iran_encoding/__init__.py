@@ -10,9 +10,9 @@ import unicodedata
 from typing import List
 import arabic_reshaper
 from bidi.algorithm import get_display
-from .mappings import IRAN_SYSTEM_MAP, REVERSE_IRAN_SYSTEM_MAP, UNKNOWN_CHAR_CODE
+from .mappings import IRAN_SYSTEM_MAP, REVERSE_IRAN_SYSTEM_MAP, UNKNOWN_CHAR_CODE, IRAN_SYSTEM_UNICODE_NUMBERS, UNICODE_IRAN_SYSTEM_NUMBERS
 
-def encode(text: str, visual_ordering: bool = True) -> bytes:
+def encode(text: str, visual_ordering: bool = True, configuration: dict = None) -> bytes:
     """
     Encodes a string into a sequence of bytes using the Iran System map.
     It handles text shaping and optional visual reordering for RTL text.
@@ -22,6 +22,8 @@ def encode(text: str, visual_ordering: bool = True) -> bytes:
         visual_ordering: If True (default), produces a visually ordered output
             for simple LTR displays. If False, produces a logically ordered
             output for systems that support bidi.
+        configuration: A dictionary of configuration options for the
+            `arabic_reshaper` library.
 
     Returns:
         A bytes object representing the encoded string.
@@ -29,10 +31,14 @@ def encode(text: str, visual_ordering: bool = True) -> bytes:
     if not isinstance(text, str):
         return b''
 
+    # ZWNJ is not supported by the Iran System encoding, so we remove it.
+    text = text.replace('\u200c', '')
+
     # Configure the reshaper
-    configuration = {
-        'support_ligatures': False,
-    }
+    if configuration is None:
+        configuration = {
+            'support_ligatures': False,
+        }
     reshaper = arabic_reshaper.ArabicReshaper(configuration=configuration)
 
     # Reshape the text to get correct presentation forms
@@ -63,7 +69,10 @@ def encode(text: str, visual_ordering: bool = True) -> bytes:
 
     byte_codes = []
     for char in output_text:
-        code = REVERSE_IRAN_SYSTEM_MAP.get(char, UNKNOWN_CHAR_CODE)
+        code = REVERSE_IRAN_SYSTEM_MAP.get(char)
+        if code is None:
+            # print(f"Character not found in reverse map: '{char}' (U+{ord(char):04X})")
+            code = UNKNOWN_CHAR_CODE
         byte_codes.append(code)
 
     return bytes(byte_codes)
@@ -84,7 +93,7 @@ def decode(data: bytes) -> str:
     # First, decode the bytes to a "visual" string
     visual_chars: List[str] = []
     for byte in data:
-        char = IRAN_SYSTEM_MAP.get(byte, '�')  # Use Unicode replacement char for unknown bytes
+        char = IRAN_SYSTEM_MAP.get(byte, '')  # Use Unicode replacement char for unknown bytes
         visual_chars.append(char)
 
     visual_text = "".join(visual_chars)
@@ -120,3 +129,83 @@ def decode_hex(hex_string: str) -> str:
         return decode(data)
     except (ValueError, TypeError):
         return "Error: Invalid hex string"
+
+def unicode_number_to_iransystem(unicode_string: str) -> bytes:
+    """
+    Converts Unicode numbers (0-9) to Iran System numbers (۰-۹).
+
+    Args:
+        unicode_string: String containing Unicode digits
+
+    Returns:
+        Bytes representing the Iran System encoded numbers
+    """
+    result = []
+    for char in unicode_string:
+        if char.isdigit() and char in IRAN_SYSTEM_UNICODE_NUMBERS:
+            result.append(IRAN_SYSTEM_UNICODE_NUMBERS[char])
+        else:
+            # For non-digit characters, use the regular encoding
+            code = REVERSE_IRAN_SYSTEM_MAP.get(char, UNKNOWN_CHAR_CODE)
+            result.append(code)
+    return bytes(result)
+
+def iransystem_to_unicode_number(iransystem_bytes: bytes) -> str:
+    """
+    Converts Iran System numbers (bytes) to Unicode numbers (0-9).
+
+    Args:
+        iransystem_bytes: Bytes representing Iran System encoded numbers
+
+    Returns:
+        String with Unicode digits
+    """
+    result = []
+    for byte in iransystem_bytes:
+        if 0x80 <= byte <= 0x89:  # Iran System digits range
+            # Convert Iran System digit to Unicode digit
+            unicode_digit = chr(0x30 + (byte - 0x80))  # 0x30 is '0' in ASCII
+            result.append(unicode_digit)
+        else:
+            # For non-digit bytes, use regular decoding
+            char = IRAN_SYSTEM_MAP.get(byte, '')
+            result.append(char)
+    return "".join(result)
+
+def reverse_string(input_str: str) -> str:
+    """
+    Reverses the order of characters in a string (used for RTL processing).
+    
+    Args:
+        input_str: Input string to reverse
+        
+    Returns:
+        Reversed string
+    """
+    return input_str[::-1]
+
+def reverse_alpha_numeric(input_str: str) -> str:
+    """
+    Reverses only alphanumeric sequences within the string while keeping other characters in place.
+    
+    Args:
+        input_str: Input string to process
+        
+    Returns:
+        String with reversed alphanumeric sequences
+    """
+    import re
+    
+    # Split the string into alphanumeric and non-alphanumeric parts
+    parts = re.split(r'([a-zA-Z0-9\u06F0-\u06F9\u0660-\u0669]+)', input_str)
+    result = []
+    
+    for part in parts:
+        if re.match(r'[a-zA-Z0-9\u06F0-\u06F9\u0660-\u0669]+', part):
+            # This is an alphanumeric sequence, reverse it
+            result.append(part[::-1])
+        else:
+            # This is a non-alphanumeric sequence, keep as is
+            result.append(part)
+    
+    return "".join(result)
