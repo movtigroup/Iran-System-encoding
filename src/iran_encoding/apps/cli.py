@@ -4,8 +4,8 @@ This module provides the command-line interface for the iran-encoding package.
 import argparse
 import ast
 import asyncio
-from iran_encoding import IranSystemEncoder
-from . import websockets as ws
+from iran_encoding.core.encoder import IranSystemEncoder
+from iran_encoding.apps import websockets as ws
 
 def main():
     """The main entry point for the CLI."""

@@ -12,7 +12,8 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/example/iran-encoding",
-    packages=find_packages(),
+    package_dir={'': 'src'},
+    packages=find_packages(where='src'),
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
@@ -28,7 +29,7 @@ setup(
     ],
     entry_points={
         "console_scripts": [
-            "iran-encoding=iran_encoding.cli:main",
+            "iran-encoding=iran_encoding.apps.cli:main",
         ],
     },
 )

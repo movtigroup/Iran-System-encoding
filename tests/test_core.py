@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
 import unittest
-from iran_encoding import IranSystemEncoder
-from iran_encoding.mappings import REVERSE_IRAN_SYSTEM_MAP, IRAN_SYSTEM_MAP
+from iran_encoding.core.encoder import IranSystemEncoder
+from iran_encoding.core.mappings import REVERSE_IRAN_SYSTEM_MAP, IRAN_SYSTEM_MAP
 
 class TestIranSystemEncoding(unittest.TestCase):
     def setUp(self):

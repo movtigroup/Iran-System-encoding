@@ -1,5 +1,5 @@
 import pytest
-from iran_encoding.utils import PersianDateTime
+from iran_encoding.utils.date import PersianDateTime
 
 def test_persian_date_time_conversion_fa():
     pdt = PersianDateTime()

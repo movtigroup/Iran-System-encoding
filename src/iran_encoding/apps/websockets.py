@@ -1,6 +1,6 @@
 import asyncio
 import websockets
-from . import IranSystemEncoder
+from iran_encoding.core.encoder import IranSystemEncoder
 
 encoder = IranSystemEncoder()
 

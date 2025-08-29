@@ -1,7 +1,7 @@
 import asyncio
 import unittest
 from unittest.mock import MagicMock, AsyncMock
-from iran_encoding import websockets as ws
+from iran_encoding.apps import websockets as ws
 
 class TestWebSockets(unittest.TestCase):
 
