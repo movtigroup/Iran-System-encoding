@@ -4,7 +4,7 @@ This module provides the command-line interface for the iran-encoding package.
 import argparse
 import ast
 import asyncio
-from iran_encoding import encode, decode, decode_hex
+from iran_encoding import IranSystemEncoder
 from . import websockets as ws
 
 def main():
@@ -36,10 +36,11 @@ def main():
     ws_client_parser.add_argument("message", type=str, help="The message to send to the server (e.g., 'encode:سلام').")
 
     args = parser.parse_args()
+    encoder = IranSystemEncoder()
 
     if args.command == "encode":
         try:
-            encoded_result = encode(args.text, visual_ordering=not args.logical)
+            encoded_result = encoder.encode(args.text, visual_ordering=not args.logical)
             # Print a space-separated hex string
             hex_output = " ".join(f"{b:02x}" for b in encoded_result)
             print(hex_output)
@@ -52,14 +53,14 @@ def main():
             byte_data = ast.literal_eval(args.data)
             if not isinstance(byte_data, bytes):
                 raise TypeError("Input must be a byte string literal (e.g., b'...')")
-            decoded_result = decode(byte_data)
+            decoded_result = encoder.decode(byte_data)
             print(decoded_result)
         except (ValueError, SyntaxError, TypeError) as e:
             print(f"Error: Invalid input for decoding. {e}")
             exit(1)
     elif args.command == "decode-hex":
         try:
-            decoded_result = decode_hex(args.hex_string)
+            decoded_result = encoder.decode_hex(args.hex_string)
             print(decoded_result)
         except Exception as e:
             print(f"Error: {e}")

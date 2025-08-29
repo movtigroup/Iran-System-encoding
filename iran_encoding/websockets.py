@@ -1,6 +1,8 @@
 import asyncio
 import websockets
-from . import encode, decode, decode_hex
+from . import IranSystemEncoder
+
+encoder = IranSystemEncoder()
 
 async def handler(websocket, path):
     """
@@ -12,11 +14,11 @@ async def handler(websocket, path):
             command, data = message.split(":", 1)
 
             if command == "encode":
-                response = encode(data).hex()
+                response = encoder.encode(data).hex()
             elif command == "decode":
-                response = decode(bytes.fromhex(data))
+                response = encoder.decode(bytes.fromhex(data))
             elif command == "decode_hex":
-                response = decode_hex(data)
+                response = encoder.decode_hex(data)
             else:
                 response = f"Error: Unknown command '{command}'"
         except Exception as e:

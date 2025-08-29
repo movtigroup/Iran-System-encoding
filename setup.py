@@ -24,6 +24,7 @@ setup(
         "websockets>=10.0",
         "arabic_reshaper",
         "python-bidi",
+        "jdatetime",
     ],
     entry_points={
         "console_scripts": [
