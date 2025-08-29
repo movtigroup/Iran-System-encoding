@@ -1,4 +1,4 @@
-from iran_encoding import IranSystemEncoder, EncodingError
+from iran_encoding import IranSystemEncoder, EncodingError, IranSystemError
 
 # Create an encoder instance that will raise an error for unknown characters
 # and will not perform visual ordering.
