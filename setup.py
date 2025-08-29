@@ -1,35 +1,4 @@
-from setuptools import setup, find_packages
+from setuptools import setup
 
-with open("README.md", "r", encoding="utf-8") as fh:
-    long_description = fh.read()
-
-setup(
-    name="iran-encoding",
-    version="0.2.0",
-    author="Jules",
-    author_email="jules@example.com",
-    description="Two-stage encoding for Persian text.",
-    long_description=long_description,
-    long_description_content_type="text/markdown",
-    url="https://github.com/example/iran-encoding",
-    package_dir={'': 'src'},
-    packages=find_packages(where='src'),
-    classifiers=[
-        "Programming Language :: Python :: 3",
-        "License :: OSI Approved :: MIT License",
-        "Operating System :: OS Independent",
-        "Topic :: Text Processing :: General",
-    ],
-    python_requires=">=3.6",
-    install_requires=[
-        "websockets>=10.0",
-        "arabic_reshaper",
-        "python-bidi",
-        "jdatetime",
-    ],
-    entry_points={
-        "console_scripts": [
-            "iran-encoding=iran_encoding.apps.cli:main",
-        ],
-    },
-)
+if __name__ == "__main__":
+    setup()

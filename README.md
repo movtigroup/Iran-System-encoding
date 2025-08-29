@@ -1,44 +1,129 @@
-# Iran System Encoding Library
+# Iran System Encoding
 
-A Python library for Iran System character encoding, supporting multiple languages, advanced date utilities, and cross-platform bindings.
+[![Python package CI](https://github.com/movtigroup/Iran-System-encoding/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/movtigroup/Iran-System-encoding/actions/workflows/ci.yml)[![Python Package using Conda](https://github.com/movtigroup/Iran-System-encoding/actions/workflows/python-package-conda.yml/badge.svg)](https://github.com/movtigroup/Iran-System-encoding/actions/workflows/python-package-conda.yml)
 
-## Features
+A Python package for encoding and decoding text using the Iran System character set, designed for environments that require visually correct Persian text but lack native support for Arabic script rendering.
 
-- Comprehensive Iran System encoding and decoding.
-- Support for Persian, Arabic, Kurdish, and Tati languages.
-- Advanced date and time utilities.
-- JavaScript and C++ bindings.
+This library provides robust two-way conversion between Unicode and the Iran System character set. It correctly handles the complexities of Persian text, including text shaping and bidirectional layout.
 
-## Usage
+## Key Features
 
-### Encoding and Decoding
+- **Accurate Text Shaping**: Utilizes the `arabic_reshaper` library to correctly shape Persian text, ensuring that characters take on their correct contextual forms (initial, medial, final, isolated).
+- **Bidirectional Text Support**: Leverages the `python-bidi` library to handle the Unicode Bidirectional Algorithm, ensuring correct visual ordering of right-to-left (Persian) and left-to-right (English) text segments.
+- **Comprehensive Character Set**: The character map is based on the Iran System standard and includes a wide range of presentation forms for Persian letters, as well as standard ASCII and Persian digits.
+- **Fallback for Unknown Characters**: Gracefully handles characters not in the map by replacing them with a `'?'`.
+- **Command-Line Interface**: Includes a CLI tool for easy encoding and decoding from the terminal.
+- **WebSocket Support**: Provides a simple WebSocket server and client for remote encoding/decoding tasks.
 
-```python
-from iran_encoding.core import IranSystemEncoder
+## Installation
 
-text = "Hello, World!"
-encoded_bytes = IranSystemEncoder().encode(text)
-decoded_text = IranSystemEncoder().decode(encoded_bytes)
-assert decoded_text == text
+To install the package from PyPI:
+
+```bash
+pip install iran-encoding
 ```
 
-### Date and Time Conversion
+This will also install the necessary dependencies: `arabic_reshaper` and `python-bidi`.
+
+## Library Usage
+
+The library provides simple `encode()` and `decode()` functions.
+
+### Example 1: Encoding Persian Text
+
+The `encode` function takes a logical string (like what you would type) and returns the byte representation in the Iran System encoding. By default, it produces a *visually ordered* output suitable for simple LTR displays.
+
+You can control this behavior with the `visual_ordering` parameter:
+- `encode(text, visual_ordering=True)` (default): Returns a visually ordered string.
+- `encode(text, visual_ordering=False)`: Returns a logically ordered string (for systems that handle bidi).
 
 ```python
-from iran_encoding.utils import PersianDateTime
+from iran_encoding import encode, decode
 
-gregorian_date = "2025-08-30"
-persian_date = PersianDateTime().convert(gregorian_date, lang='en')
-print(persian_date)  # Output: 8 Shahrivar 1404
+text = "سلام دنیا"
+encoded = encode(text)
+print(f"Original: {text}")
+print(f"Encoded (hex): {encoded.hex()}")
+
+# The decoded text will be the same as the original logical string.
+decoded = decode(encoded)
+print(f"Decoded: {decoded}")
+# Correctly prints: سلام دنیا
+```
+The `encoded` bytes represent the visually correct string, with letters shaped and ordered correctly for display in a simple left-to-right environment.
+
+### Example 2: Mixed Bidirectional Text
+
+The library automatically handles the ordering of mixed English and Persian text.
+
+```python
+from iran_encoding import encode, decode
+
+text = "Final ETA: ۱۰ دقیقه"
+encoded = encode(text)
+print(f"\nOriginal: {text}")
+print(f"Encoded (hex): {encoded.hex()}")
+
+decoded = decode(encoded)
+print(f"Decoded: {decoded}")
+# Correctly prints: Final ETA: ۱۰ دقیقه
 ```
 
-## Contributing
+## Command-Line Interface
 
-1. Clone the repository.
-2. Install dependencies.
-3. Run tests.
-4. Fork and submit a pull request.
+You can also use the package from the command line.
 
-## License
+### `encode`
 
-MIT License
+```bash
+iran-encoding encode "Test: تست"
+```
+This will print a space-separated hex string of the encoded text in visual order.
+
+To get the output in logical order, use the `--logical` flag:
+```bash
+iran-encoding encode "Test: تست" --logical
+```
+
+### `decode`
+
+The `decode` command requires the input to be a Python bytes literal string.
+
+```bash
+iran-encoding decode "b'\\x54\\x65\\x73\\x74\\x3a\\x20\\x91\\x9d\\x8f'"
+```
+This will print the decoded string: `Test: تست`
+
+**Note**: You need to wrap the byte string in quotes (`" "`) and prefix it with `b''` to ensure it is correctly parsed by the command line.
+
+### `decode-hex`
+
+The `decode-hex` command decodes a string of hexadecimal characters into text.
+
+```bash
+iran-encoding decode-hex 546573743a20919d8f
+```
+This will print the decoded string: `Test: تست`
+
+## WebSocket Support
+
+This library also provides WebSocket support for both a server and a client.
+
+### WebSocket Server
+
+You can start a WebSocket server that will listen for incoming messages and encode or decode them.
+
+```bash
+iran-encoding ws-server --host 0.0.0.0 --port 8765
+```
+
+The server expects messages in the format `"command:data"`, where `command` is one of `encode`, `decode`, or `decode-hex`.
+
+### WebSocket Client
+
+You can use the WebSocket client to send a message to the server and receive the response.
+
+```bash
+iran-encoding ws-client ws://localhost:8765 "encode:سلام"
+```
+This will send the message `"encode:سلام"` to the server and print the response.
