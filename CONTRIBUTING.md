@@ -7,6 +7,13 @@
 4. Push to your branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
+## Setting up the Development Environment
+To work on the code, you need to install the library in editable mode along with the development dependencies:
+```bash
+pip install -e .[dev]
+```
+This will install all the necessary tools for testing and linting, such as `pytest`, `pytest-asyncio`, and `flake8`.
+
 ## Code Standards
 - Follow PEP 8 style guide
 - Type hints for all functions
