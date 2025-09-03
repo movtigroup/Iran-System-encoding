@@ -16,7 +16,6 @@ def run_cli_command(command):
 def test_cli_encode():
     """Test the CLI encode command."""
     result = run_cli_command(["encode", "سلام"])
-    print(f"CLI output for encode: '{result.stdout}'")
     assert result.returncode == 0
     # The hex output can vary with shaping, so just check it's a hex string
     assert all(c in "0123456789abcdef\\n" for c in result.stdout.strip())

@@ -59,14 +59,12 @@ class IranSystemEncoder:
 
         reshaped_text = self.shape_text(text)
         if visual_ordering:
-            # This logic is adapted from the original library to handle bidi part-by-part
             rtl_char_pattern = re.compile(r'([\u0600-\u06FF\uFB50-\uFDFF\uFE70-\uFEFF]+)')
             parts = rtl_char_pattern.split(reshaped_text)
             processed_parts = []
             for part in parts:
                 if rtl_char_pattern.match(part):
-                    visual_part = get_display(part, base_dir='R')
-                    processed_parts.append(visual_part)
+                    processed_parts.append(get_display(part, base_dir='R'))
                 else:
                     processed_parts.append(part)
             output_text = "".join(processed_parts)
@@ -101,7 +99,6 @@ class IranSystemEncoder:
 
         visual_text = "".join(chars)
 
-        # Manually reverse RTL segments to get logical text
         rtl_char_pattern = re.compile(r'([\u0600-\u06FF\uFB50-\uFDFF\uFE70-\uFEFF]+)')
         parts = rtl_char_pattern.split(visual_text)
         logical_parts = []
