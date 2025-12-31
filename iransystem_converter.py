@@ -2,238 +2,153 @@
 
 """
 A converter for transforming text from the legacy IranSystem encoding to Unicode.
-This converter uses a mapping to Windows-1256 as an intermediate step.
+This final version uses a rule-based engine to correctly handle the
+visual-to-logical conversion, including ZWNJ logic and full character mapping.
 """
 
-# This dictionary maps IranSystem byte codes to Windows-1256 byte codes.
-# The mapping is based on the character they represent.
-# IranSystem has separate codes for different forms of a letter,
-# while Windows-1256 uses a single code for each letter.
-IRANSYSTEM_TO_WIN1256_MAP = {
-    # Persian Numbers 0-9 (mapped to ASCII digits 0-9)
-    # Windows-1256 does not have dedicated Persian digits, so we map to ASCII.
-    128: 0x30,  # ۰ -> 0
-    129: 0x31,  # ۱ -> 1
-    130: 0x32,  # ۲ -> 2
-    131: 0x33,  # ۳ -> 3
-    132: 0x34,  # ۴ -> 4
-    133: 0x35,  # ۵ -> 5
-    134: 0x36,  # ۶ -> 6
-    135: 0x37,  # ۷ -> 7
-    136: 0x38,  # ۸ -> 8
-    137: 0x39,  # ۹ -> 9
+# --- Step 1: Data Structures ---
 
-    # Punctuation
-    138: 0xA1,  # ، (Comma)
-    139: 0xDC,  # ـ (Tatweel)
-    140: 0xBF,  # ؟ (Question Mark)
+# Visual form constants from IranSystem
+FORM_ISOLATED = "isolated"
+FORM_INITIAL = "initial"
+FORM_MEDIAL = "medial"
+FORM_FINAL = "final"
+FORM_NEUTRAL = "neutral"
 
-    # Alef variants and Hamza
-    141: 0xC2,  # ﺁ (Alef with Madda)
-    142: 0xC6,  # ﺋ (Yeh with Hamza Above)
-    143: 0xC1,  # ﺀ (Hamza)
-    144: 0xC7,  # ﺍ (Alef)
-    145: 0xC7,  # ﺎ (Alef)
+# Unicode joining property constants
+JOIN_DUAL = "dual"   # Joins on both sides
+JOIN_RIGHT = "right" # Joins only to the previous character
+JOIN_NONE = "none"   # Does not join
 
-    # Beh
-    146: 0xC8,  # ﺏ
-    147: 0xC8,  # ﺑ
+ZWNJ = '\u200C'
 
-    # Peh
-    148: 0x81,  # ﭖ
-    149: 0x81,  # ﭘ
+# Dictionary mapping IranSystem bytes to (Unicode Character, Visual Form)
+# Based on the table by Roozbeh Pournader (v1.0, 21 Jan 2000)
+IRANSYSTEM_MAP = {
+    # ASCII and control characters (0x00-0x7F) are neutral
+    **{i: (chr(i), FORM_NEUTRAL) for i in range(128)},
 
-    # Teh
-    150: 0xCA,  # ﺕ
-    151: 0xCA,  # ﺗ
+    # Persian Numbers and punctuation (0x80-0x8F, 0xFF) are neutral
+    0x80: ('\u06F0', FORM_NEUTRAL), 0x81: ('\u06F1', FORM_NEUTRAL), 0x82: ('\u06F2', FORM_NEUTRAL),
+    0x83: ('\u06F3', FORM_NEUTRAL), 0x84: ('\u06F4', FORM_NEUTRAL), 0x85: ('\u06F5', FORM_NEUTRAL),
+    0x86: ('\u06F6', FORM_NEUTRAL), 0x87: ('\u06F7', FORM_NEUTRAL), 0x88: ('\u06F8', FORM_NEUTRAL),
+    0x89: ('\u06F9', FORM_NEUTRAL), 0x8A: ('\u060C', FORM_NEUTRAL), 0x8B: ('\u0640', FORM_INITIAL),
+    0x8C: ('\u061F', FORM_NEUTRAL), 0x8F: ('\u0621', FORM_NEUTRAL), 0xFF: ('\u00A0', FORM_NEUTRAL),
 
-    # Theh
-    152: 0xCB,  # ﺙ
-    153: 0xCB,  # ﺛ
+    # Letters with their visual forms explicitly defined (0x8D-0xA6, 0xA7-0xAF, 0xE0-0xFE)
+    0x8D: ('\u0622', FORM_ISOLATED), 0x90: ('\u0627', FORM_ISOLATED), 0x91: ('\u0627', FORM_FINAL),
+    0x8E: ('\u0626', FORM_INITIAL),
+    0x92: ('\u0628', FORM_FINAL),   0x93: ('\u0628', FORM_INITIAL),
+    0x94: ('\u067E', FORM_FINAL),   0x95: ('\u067E', FORM_INITIAL),
+    0x96: ('\u062A', FORM_FINAL),   0x97: ('\u062A', FORM_INITIAL),
+    0x98: ('\u062B', FORM_FINAL),   0x99: ('\u062B', FORM_INITIAL),
+    0x9A: ('\u062C', FORM_FINAL),   0x9B: ('\u062C', FORM_INITIAL),
+    0x9C: ('\u0686', FORM_FINAL),   0x9D: ('\u0686', FORM_INITIAL),
+    0x9E: ('\u062D', FORM_FINAL),   0x9F: ('\u062D', FORM_INITIAL),
+    0xA0: ('\u062E', FORM_FINAL),   0xA1: ('\u062E', FORM_INITIAL),
+    0xA2: ('\u062F', FORM_ISOLATED), 0xA3: ('\u0630', FORM_ISOLATED), 0xA4: ('\u0631', FORM_ISOLATED),
+    0xA5: ('\u0632', FORM_ISOLATED), 0xA6: ('\u0698', FORM_ISOLATED),
+    0xA7: ('\u0633', FORM_FINAL),   0xA8: ('\u0633', FORM_INITIAL),
+    0xA9: ('\u0634', FORM_FINAL),   0xAA: ('\u0634', FORM_INITIAL),
+    0xAB: ('\u0635', FORM_FINAL),   0xAC: ('\u0635', FORM_INITIAL),
+    0xAD: ('\u0636', FORM_FINAL),   0xAE: ('\u0636', FORM_INITIAL),
+    0xAF: ('\u0637', FORM_ISOLATED), 0xE0: ('\u0638', FORM_ISOLATED),
+    0xE1: ('\u0639', FORM_ISOLATED),0xE2: ('\u0639', FORM_FINAL),  0xE3: ('\u0639', FORM_MEDIAL),  0xE4: ('\u0639', FORM_INITIAL),
+    0xE5: ('\u063A', FORM_ISOLATED),0xE6: ('\u063A', FORM_FINAL),  0xE7: ('\u063A', FORM_MEDIAL),  0xE8: ('\u063A', FORM_INITIAL),
+    0xE9: ('\u0641', FORM_FINAL),   0xEA: ('\u0641', FORM_INITIAL),
+    0xEB: ('\u0642', FORM_FINAL),   0xEC: ('\u0642', FORM_INITIAL),
+    0xED: ('\u06A9', FORM_FINAL),   0xEE: ('\u06A9', FORM_INITIAL),
+    0xEF: ('\u06AF', FORM_FINAL),   0xF0: ('\u06AF', FORM_INITIAL),
+    0xF1: ('\u0644', FORM_FINAL),   0xF3: ('\u0644', FORM_INITIAL), 0xF2: ('\u0644\u0627', FORM_FINAL),
+    0xF4: ('\u0645', FORM_FINAL),   0xF5: ('\u0645', FORM_INITIAL),
+    0xF6: ('\u0646', FORM_FINAL),   0xF7: ('\u0646', FORM_INITIAL),
+    0xF8: ('\u0648', FORM_ISOLATED),
+    0xF9: ('\u0647', FORM_FINAL),   0xFA: ('\u0647', FORM_MEDIAL),  0xFB: ('\u0647', FORM_INITIAL),
+    0xFC: ('\u06CC', FORM_FINAL),   0xFD: ('\u06CC', FORM_ISOLATED),0xFE: ('\u06CC', FORM_INITIAL),
 
-    # Jeem
-    154: 0xCC,  # ﺝ
-    155: 0xCC,  # ﺟ
-
-    # Cheh
-    156: 0x8D,  # ﭺ
-    157: 0x8D,  # ﭼ
-
-    # Hah
-    158: 0xCD,  # ﺡ
-    159: 0xCD,  # ﺣ
-
-    # Khah
-    160: 0xCE,  # ﺥ
-    161: 0xCE,  # ﺧ
-
-    # Dal, Thal, Reh, Zain, Jeh
-    162: 0xCF,  # ﺩ
-    163: 0xD0,  # ﺫ
-    164: 0xD1,  # ﺭ
-    165: 0xD2,  # ﺯ
-    166: 0x8E,  # ﮊ
-
-    # Seen
-    167: 0xD3,  # ﺱ
-    168: 0xD3,  # ﺳ
-
-    # Sheen
-    169: 0xD4,  # ﺵ
-    170: 0xD4,  # ﺷ
-
-    # Sad
-    171: 0xD5,  # ﺹ
-    172: 0xD5,  # ﺻ
-
-    # Dad
-    173: 0xD6,  # ﺽ
-    174: 0xD6,  # ﺿ
-
-    # Tah, Zah
-    175: 0xD8,  # ﻁ
-    225: 0xD9,  # ﻅ
-
-    # Ain
-    226: 0xDA,  # ﻉ
-    227: 0xDA,  # ﻊ
-    228: 0xDA,  # ﻌ
-    229: 0xDA,  # ﻋ
-
-    # Ghain
-    230: 0xDB,  # ﻍ
-    231: 0xDB,  # ﻎ
-    232: 0xDB,  # ﻐ
-    233: 0xDB,  # ﻏ
-
-    # Feh
-    234: 0xDD,  # ﻑ
-    235: 0xDD,  # ﻓ
-
-    # Qaf
-    236: 0xDE,  # ﻕ
-    237: 0xDE,  # ﻗ
-
-    # Kaf
-    238: 0xDF,  # ﮎ
-    239: 0xDF,  # ﮐ
-
-    # Gaf
-    240: 0x90,  # ﮒ
-    241: 0x90,  # ﮔ
-
-    # Lam
-    242: 0xE1,  # ﻝ
-    243: 0xFC,  # ﻻ (Lam with Alef)
-    244: 0xE1,  # ﻟ
-
-    # Meem
-    245: 0xE3,  # ﻡ
-    246: 0xE3,  # ﻣ
-
-    # Noon
-    247: 0xE4,  # ﻥ
-    248: 0xE4,  # ﻧ
-
-    # Waw
-    249: 0xE6,  # ﻭ
-
-    # Heh
-    250: 0xE5,  # ﻩ
-    251: 0xE5,  # ﻬ
-    252: 0xE5,  # ﻫ
-
-    # Yeh
-    253: 0xED,  # ﯽ
-    254: 0xED,  # ﯼ
-    255: 0xED,  # ﯾ
+    # Box drawing and block characters (0xB0-0xDF) are neutral
+    0xB0: ('\u2591', FORM_NEUTRAL), 0xB1: ('\u2592', FORM_NEUTRAL), 0xB2: ('\u2593', FORM_NEUTRAL),
+    0xB3: ('\u2502', FORM_NEUTRAL), 0xB4: ('\u2524', FORM_NEUTRAL), 0xB5: ('\u2561', FORM_NEUTRAL),
+    0xB6: ('\u2562', FORM_NEUTRAL), 0xB7: ('\u2556', FORM_NEUTRAL), 0xB8: ('\u2555', FORM_NEUTRAL),
+    0xB9: ('\u2563', FORM_NEUTRAL), 0xBA: ('\u2551', FORM_NEUTRAL), 0xBB: ('\u2557', FORM_NEUTRAL),
+    0xBC: ('\u255D', FORM_NEUTRAL), 0xBD: ('\u255C', FORM_NEUTRAL), 0xBE: ('\u255B', FORM_NEUTRAL),
+    0xBF: ('\u2510', FORM_NEUTRAL), 0xC0: ('\u2514', FORM_NEUTRAL), 0xC1: ('\u2534', FORM_NEUTRAL),
+    0xC2: ('\u252C', FORM_NEUTRAL), 0xC3: ('\u251C', FORM_NEUTRAL), 0xC4: ('\u2500', FORM_NEUTRAL),
+    0xC5: ('\u253C', FORM_NEUTRAL), 0xC6: ('\u255E', FORM_NEUTRAL), 0xC7: ('\u255F', FORM_NEUTRAL),
+    0xC8: ('\u255A', FORM_NEUTRAL), 0xC9: ('\u2554', FORM_NEUTRAL), 0xCA: ('\u2569', FORM_NEUTRAL),
+    0xCB: ('\u2566', FORM_NEUTRAL), 0xCC: ('\u2560', FORM_NEUTRAL), 0xCD: ('\u2550', FORM_NEUTRAL),
+    0xCE: ('\u256C', FORM_NEUTRAL), 0xCF: ('\u2567', FORM_NEUTRAL), 0xD0: ('\u2568', FORM_NEUTRAL),
+    0xD1: ('\u2564', FORM_NEUTRAL), 0xD2: ('\u2565', FORM_NEUTRAL), 0xD3: ('\u2559', FORM_NEUTRAL),
+    0xD4: ('\u2558', FORM_NEUTRAL), 0xD5: ('\u2552', FORM_NEUTRAL), 0xD6: ('\u2553', FORM_NEUTRAL),
+    0xD7: ('\u256B', FORM_NEUTRAL), 0xD8: ('\u256A', FORM_NEUTRAL), 0xD9: ('\u2518', FORM_NEUTRAL),
+    0xDA: ('\u250C', FORM_NEUTRAL), 0xDB: ('\u2588', FORM_NEUTRAL), 0xDC: ('\u2584', FORM_NEUTRAL),
+    0xDD: ('\u258C', FORM_NEUTRAL), 0xDE: ('\u2590', FORM_NEUTRAL), 0xDF: ('\u2580', FORM_NEUTRAL),
 }
 
-# Box Drawing Characters (0xB0-0xDF -> 176-223)
-# These do not have a direct equivalent in Windows-1256.
-# We will map them to a space character (0x20).
-IRANSYSTEM_TO_WIN1256_MAP.update({i: 0x20 for i in range(176, 224)})
+# Dictionary of Unicode joining properties for relevant characters
+UNICODE_JOIN_PROPS = {
+    'ب': JOIN_DUAL, 'پ': JOIN_DUAL, 'ت': JOIN_DUAL, 'ث': JOIN_DUAL, 'ج': JOIN_DUAL,
+    'چ': JOIN_DUAL, 'ح': JOIN_DUAL, 'خ': JOIN_DUAL, 'س': JOIN_DUAL, 'ش': JOIN_DUAL,
+    'ص': JOIN_DUAL, 'ض': JOIN_DUAL, 'ع': JOIN_DUAL, 'غ': JOIN_DUAL, 'ف': JOIN_DUAL,
+    'ق': JOIN_DUAL, 'ک': JOIN_DUAL, 'گ': JOIN_DUAL, 'ل': JOIN_DUAL, 'م': JOIN_DUAL,
+    'ن': JOIN_DUAL, 'ه': JOIN_DUAL, 'ی': JOIN_DUAL, 'ئ': JOIN_DUAL,
+    'ا': JOIN_RIGHT, 'آ': JOIN_RIGHT, 'د': JOIN_RIGHT, 'ذ': JOIN_RIGHT, 'ر': JOIN_RIGHT,
+    'ز': JOIN_RIGHT, 'ژ': JOIN_RIGHT, 'و': JOIN_RIGHT, 'لا': JOIN_RIGHT, 'ط': JOIN_RIGHT,
+    'ظ': JOIN_RIGHT,
+}
 
+# --- Step 2: Rule-Based Conversion Function ---
 
 def convert_iransystem_to_unicode(iransystem_bytes):
-    """
-    Converts a byte string from IranSystem encoding to a Unicode string.
+    if not iransystem_bytes:
+        return ""
 
-    Args:
-        iransystem_bytes: A bytes object representing text in IranSystem encoding.
+    result = []
+    i = 0
+    while i < len(iransystem_bytes):
+        char, form = IRANSYSTEM_MAP.get(iransystem_bytes[i], ('?', FORM_NEUTRAL))
+        result.append(char)
 
-    Returns:
-        A string decoded as Unicode.
-    """
-    win1256_byte_list = []
-    for byte in iransystem_bytes:
-        # For bytes in the ASCII range (0-127), keep them as they are.
-        if byte < 128:
-            win1256_byte_list.append(byte)
-        else:
-            # For bytes in the extended range, look up the mapping.
-            # Default to a space character (0x20) if a mapping is not found.
-            win1256_byte_list.append(IRANSYSTEM_TO_WIN1256_MAP.get(byte, 0x20))
+        if i + 1 < len(iransystem_bytes):
+            current_join_prop = UNICODE_JOIN_PROPS.get(char, JOIN_NONE)
 
-    # Convert the list of integers to a bytes object
-    win1256_bytes = bytes(win1256_byte_list)
+            next_char, next_form = IRANSYSTEM_MAP.get(iransystem_bytes[i+1], ('?', FORM_NEUTRAL))
+            next_join_prop = UNICODE_JOIN_PROPS.get(next_char, JOIN_NONE)
 
-    # Decode the resulting Windows-1256 bytes to a Unicode string
-    unicode_string = win1256_bytes.decode('windows-1256')
+            # THE FINAL RULE:
+            # Insert a ZWNJ if the current character was explicitly non-joining
+            # in IranSystem (final/isolated form), but its Unicode nature
+            # is to join, and the next character's Unicode nature is to join back.
+            if (form == FORM_FINAL or form == FORM_ISOLATED) and \
+               (current_join_prop == JOIN_DUAL) and \
+               (next_join_prop == JOIN_DUAL):
+                 result.append(ZWNJ)
+        i += 1
 
-    # Replace Arabic Yeh (ي) with Persian Yeh (ی) and Arabic Kaf (ك) with Persian Kaf (ک)
-    return unicode_string.replace('\u064A', '\u06CC').replace('\u0643', '\u06A9')
+    return "".join(result)
+
+# --- Step 3: Final Tests ---
 
 if __name__ == '__main__':
-    # Example Usage:
-    # This byte sequence in IranSystem represents "سلام دنیا" (Salam Donya)
-    # س (final) -> 0xA7 -> 167
-    # ل (final) -> 0xF2 -> 242
-    # ا (final) -> 0x91 -> 145
-    # م (final) -> 0xF5 -> 245
-    #   (space) -> 0x20 -> 32
-    # د (final) -> 0xA2 -> 162
-    # ن (medial) -> 0xF8 -> 248
-    # ی (final) -> 0xFE -> 254
-    # ا (final) -> 0x91 -> 145
+    test_cases = [
+        {"name": "Basic word 'سلام'", "bytes": bytes([0xA8, 0xF3, 0x91, 0xF4]), "expected": "سلام"},
+        {"name": "Word with right-joining 'برنامه'", "bytes": bytes([0x93,0xA4,0xF7,0x91,0xF5,0xF9]), "expected": "برنامه"},
+        {"name": "Key ZWNJ case 'خانه‌ها'", "bytes": bytes([0xA1, 0x91, 0xF7, 0xF9, 0xFB, 0x91]), "expected": "خانه‌ها"},
+        {"name": "Ezafe construct 'خانه‌ی'", "bytes": bytes([0xA1, 0x91, 0xF7, 0xF9, 0xFE]), "expected": "خانه‌ی"},
+        {"name": "Numbers do not join '۱۲۳'", "bytes": bytes([0x81,0x82,0x83]), "expected": "۱۲۳"},
+        {"name": "Ligature 'طلا'", "bytes": bytes([0xAF, 0xF2]), "expected": "طلا"},
+        {"name": "Box drawing '┌─┐'", "bytes": bytes([0xDA, 0xC4, 0xBF]), "expected": "┌─┐"},
+    ]
 
-    # Note: IranSystem uses contextual forms. A more realistic sequence:
-    # س (initial) -> 0xA8 -> 168
-    # ل (medial)  -> 0xF4 -> 244
-    # ا (final)   -> 0x91 -> 145
-    # م (final)   -> 0xF5 -> 245
-    #   (space)   -> 0x20 -> 32
-    # د           -> 0xA2 -> 162
-    # ن (initial) -> 0xF8 -> 248
-    # ی (medial)  -> 0xFF -> 255
-    # ا (final)   -> 0x91 -> 145
-
-    # Let's try "ایران سیستم"
-    # ا -> 144
-    # ی -> 255
-    # ر -> 164
-    # ا -> 145
-    # ن -> 247
-    # (space)
-    # س -> 168
-    # ی -> 255
-    # س -> 168
-    # ت -> 151
-    # م -> 245
-
-    example_bytes = bytes([168, 244, 145, 245, 32, 162, 248, 255, 145]) # سلام دنیا
-    unicode_text = convert_iransystem_to_unicode(example_bytes)
-
-    print(f"Original IranSystem Bytes: {example_bytes}")
-    print(f"Converted Unicode Text: {unicode_text}")
-
-    example_iran_system = bytes([144, 255, 164, 145, 247, 32, 168, 255, 168, 151, 245])
-    unicode_iran_system = convert_iransystem_to_unicode(example_iran_system)
-    print(f"Original IranSystem Bytes for 'ایران سیستم': {example_iran_system}")
-    print(f"Converted Unicode Text: {unicode_iran_system}")
-
-    # Example for Kaf
-    example_kaf = bytes([239, 240, 238]) # کگک
-    unicode_kaf = convert_iransystem_to_unicode(example_kaf)
-    print(f"Original IranSystem Bytes for 'ک': {example_kaf}")
-    print(f"Converted Unicode Text: {unicode_kaf}")
+    for test in test_cases:
+        print(f"--- Test Case: {test['name']} ---")
+        converted_text = convert_iransystem_to_unicode(test['bytes'])
+        print(f"Bytes:     {test['bytes'].hex(' ').upper()}")
+        print(f"Converted: '{converted_text}'")
+        print(f"Expected:  '{test['expected']}'")
+        try:
+            assert converted_text == test['expected']
+            print("Result:    PASSED!")
+        except AssertionError:
+            print(f"Result:    FAILED!")
+        print("-" * 20)
