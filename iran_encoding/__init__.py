@@ -1,128 +1,118 @@
 # -*- coding: utf-8 -*-
-
 """
 This module provides encoding and decoding functionality for the Iran System
 character set, including bidirectional text handling.
 """
+from .converter import convert_iransystem_to_unicode, IRANSYSTEM_MAP, UNICODE_JOIN_PROPS, ZWNJ
+from .mappings import UNKNOWN_CHAR_CODE
 
-import re
-import unicodedata
-from typing import List
-import arabic_reshaper
-from bidi.algorithm import get_display
-from .mappings import IRAN_SYSTEM_MAP, REVERSE_IRAN_SYSTEM_MAP, UNKNOWN_CHAR_CODE
+# Create a reverse map for encoding
+REVERSE_IRAN_SYSTEM_MAP = {}
+for code, value in IRANSYSTEM_MAP.items():
+    if isinstance(value, tuple):
+        char, form = value
+        # Ensure the key is a tuple of (character, form)
+        REVERSE_IRAN_SYSTEM_MAP[(char, form)] = code
 
-def encode(text: str, visual_ordering: bool = True, configuration: dict = None) -> bytes:
+def encode(text: str) -> bytes:
     """
-    Encodes a string into a sequence of bytes using the Iran System map.
-    It handles text shaping and optional visual reordering for RTL text.
-
-    Args:
-        text: The input string to encode.
-        visual_ordering: If True (default), produces a visually ordered output
-            for simple LTR displays. If False, produces a logically ordered
-            output for systems that support bidi.
-        configuration: A dictionary of configuration options for the
-            `arabic_reshaper` library.
-
-    Returns:
-        A bytes object representing the encoded string.
+    Encodes a logical Unicode string into a sequence of IranSystem bytes.
+    This function is the inverse of decode, ensuring that decode(encode(text)) == text.
     """
     if not isinstance(text, str):
         return b''
 
-    # ZWNJ is not supported by the Iran System encoding, so we remove it.
-    text = text.replace('\u200c', '')
-
-    # Configure the reshaper
-    if configuration is None:
-        configuration = {
-            'support_ligatures': False,
-        }
-    reshaper = arabic_reshaper.ArabicReshaper(configuration=configuration)
-
-    # Reshape the text to get correct presentation forms
-    reshaped_text = reshaper.reshape(text)
-
-    if visual_ordering:
-        # This regex finds sequences of RTL characters (Arabic, Persian, etc.).
-        rtl_char_pattern = re.compile(r'([\u0600-\u06FF\uFB50-\uFDFF\uFE70-\uFEFF]+)')
-        parts = rtl_char_pattern.split(reshaped_text)
-        processed_parts = []
-        for part in parts:
-            if rtl_char_pattern.match(part):
-                # This is an RTL segment, apply bidi
-                # A bit of a hack for Persian numbers, which bidi.get_display doesn't seem to handle correctly.
-                is_all_digits = all('\u06F0' <= c <= '\u06F9' for c in part)
-                if is_all_digits:
-                    visual_part = part[::-1]
-                else:
-                    visual_part = get_display(part, base_dir='R')
-                processed_parts.append(visual_part)
-            else:
-                # This is an LTR segment, no change needed
-                processed_parts.append(part)
-
-        output_text = "".join(processed_parts)
-    else:
-        output_text = reshaped_text
-
     byte_codes = []
-    for char in output_text:
-        code = REVERSE_IRAN_SYSTEM_MAP.get(char)
+    i = 0
+    while i < len(text):
+        char = text[i]
+
+        if char == ZWNJ:
+            i += 1
+            continue
+
+        # --- Ligature check: Lookahead for 'لا' ---
+        if char == 'ل' and i + 1 < len(text) and text[i + 1] == 'ا':
+            # The 'laa' ligature is always final/isolated in this encoding
+            code = REVERSE_IRAN_SYSTEM_MAP.get(('لا', 'final'))
+            if code is not None:
+                byte_codes.append(code)
+                i += 2  # Consumed both 'ل' and 'ا'
+                continue
+
+        # --- Determine Joining Properties ---
+        def joins_forward(c):
+            """Check if a character joins with the next one."""
+            prop = UNICODE_JOIN_PROPS.get(c)
+            return prop == 'dual'
+
+        def joins_backward(c):
+            """Check if a character joins with the previous one."""
+            prop = UNICODE_JOIN_PROPS.get(c)
+            return prop in ('dual', 'right')
+
+        # Determine connectivity based on context
+        connects_to_prev = False
+        if i > 0 and text[i - 1] != ZWNJ:
+            prev_char = text[i - 1]
+            if joins_forward(prev_char) and joins_backward(char):
+                connects_to_prev = True
+
+        connects_to_next = False
+        if i + 1 < len(text) and text[i + 1] != ZWNJ:
+            next_char = text[i + 1]
+            if joins_forward(char) and joins_backward(next_char):
+                connects_to_next = True
+
+        # --- Determine Form ---
+        if connects_to_prev and connects_to_next:
+            form = "medial"
+        elif connects_to_prev:
+            form = "final"
+        elif connects_to_next:
+            form = "initial"
+        else:
+            form = "isolated"
+
+        # --- Find Code with intelligent fallbacks ---
+        code = REVERSE_IRAN_SYSTEM_MAP.get((char, form))
+
         if code is None:
-            # print(f"Character not found in reverse map: '{char}' (U+{ord(char):04X})")
+            # If a specific form isn't found, try a visually similar one.
+            # Medial forms often resemble initial forms.
+            if form == "medial":
+                code = REVERSE_IRAN_SYSTEM_MAP.get((char, "initial"))
+            # Isolated forms often resemble final forms.
+            elif form == "isolated":
+                code = REVERSE_IRAN_SYSTEM_MAP.get((char, "final"))
+
+        if code is None:
+            # As a general fallback for any connecting form, try the isolated shape.
+            if form in ["medial", "initial", "final"]:
+                code = REVERSE_IRAN_SYSTEM_MAP.get((char, "isolated"))
+
+        if code is None:
+            # Fallback for non-Arabic characters like numbers and punctuation.
+            code = REVERSE_IRAN_SYSTEM_MAP.get((char, "neutral"))
+
+        if code is None:
+            # If all else fails, use the unknown character code.
             code = UNKNOWN_CHAR_CODE
+
         byte_codes.append(code)
+        i += 1
 
     return bytes(byte_codes)
 
 def decode(data: bytes) -> str:
     """
-    Decodes a byte string from the Iran System encoding back to a string.
-
-    Args:
-        data: The input bytes to decode.
-
-    Returns:
-        The decoded string.
+    Decodes a byte string from the Iran System encoding back to a logical string.
     """
-    if not isinstance(data, bytes):
-        return ''
-
-    # First, decode the bytes to a "visual" string
-    visual_chars: List[str] = []
-    for byte in data:
-        char = IRAN_SYSTEM_MAP.get(byte, '�')  # Use Unicode replacement char for unknown bytes
-        visual_chars.append(char)
-
-    visual_text = "".join(visual_chars)
-
-    # The Iran System encoding is visual. To get a logical string, we need to
-    # reverse the RTL segments.
-    rtl_char_pattern = re.compile(r'([\u0600-\u06FF\uFB50-\uFDFF\uFE70-\uFEFF]+)')
-    parts = rtl_char_pattern.split(visual_text)
-    logical_parts = []
-    for part in parts:
-        if rtl_char_pattern.match(part):
-            logical_parts.append(part[::-1])
-        else:
-            logical_parts.append(part)
-
-    logical_text = "".join(logical_parts)
-
-    # Normalize presentation forms to base characters
-    return unicodedata.normalize('NFKD', logical_text)
+    return convert_iransystem_to_unicode(data)
 
 def decode_hex(hex_string: str) -> str:
     """
     Decodes a hex string into a UTF-8 string using the Iran System map.
-
-    Args:
-        hex_string: The input hex string to decode.
-
-    Returns:
-        The decoded string.
     """
     try:
         data = bytes.fromhex(hex_string)
