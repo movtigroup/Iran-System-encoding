@@ -1,0 +1,21 @@
+version: "1.0"
+linter: jetbrains/qodana-python:latest
+profile:
+  name: qodana.starter
+
+bootstrap: pip install .
+
+properties:
+  jetbrains.qodana.severity.profile: PROBLEM_METHOD
+  python.check.members: "true"
+  python.check.unresolved.refs: "true"
+
+exclude:
+  - name: All
+    paths:
+      - "**/venv/**"
+      - "**/__pycache__/**"
+      - "**/*.pyc"
+      - "**/build/**"
+      - "**/dist/**"
+      - "**/*.egg-info/**"
