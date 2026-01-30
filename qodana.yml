@@ -5,6 +5,8 @@ bootstrap: pip install -r requirements.txt
 properties:
   jetbrains.qodana.severity.profile: PROBLEM_METHOD
   jetbrains.qodana.performance.min.size: 1
+  python.check.members: true
+  python.check.unresolved.refs: true
 
 # Docker image for Python code analysis (Community version)
 image: jetbrains/qodana-python-community:2025.2
@@ -30,8 +32,3 @@ exclude:
       - "**/dist/**"
       - "**/*.egg-info/**"
       - "setup_c_extension.py"  # C extension setup may cause warnings
-
-# Analysis scope properties
-properties:
-  python.check.members: true
-  python.check.unresolved.refs: true

@@ -7,9 +7,8 @@ import os
 
 # Add the parent directory to the path so we can import iran_encoding
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
-# Change to the tests directory to allow local imports
-os.chdir(os.path.dirname(os.path.abspath(__file__)))
+# Add current directory to path to allow direct imports of other test modules
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from test_converter import TestConverter
 from test_encoding_functions import TestEncodingFunctions
