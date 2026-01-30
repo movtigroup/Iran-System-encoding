@@ -1,15 +1,15 @@
-version: "1.0"
-
+version: 1.0
 profile:
   name: qodana.starter
+bootstrap: pip install -r requirements.txt
+properties:
+  jetbrains.qodana.severity.profile: PROBLEM_METHOD
+  jetbrains.qodana.performance.min.size: 1
 
 # Docker image for Python code analysis (Community version)
 image: jetbrains/qodana-python-community:2025.2
 
-# Install Python dependencies before analysis
-bootstrap: pip install -r requirements.txt
-
-# Specify the source directories to analyze
+# Specify the inspections to include
 include:
   - name: PythonCustomInspection
   - name: PyCompatibilityInspection
@@ -31,7 +31,7 @@ exclude:
       - "**/*.egg-info/**"
       - "setup_c_extension.py"  # C extension setup may cause warnings
 
-# Analysis scope
+# Analysis scope properties
 properties:
-  - "-Dpython.check.members=true"
-  - "-Dpython.check.unresolved.refs=true"
+  python.check.members: true
+  python.check.unresolved.refs: true

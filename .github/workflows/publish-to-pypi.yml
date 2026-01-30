@@ -1,4 +1,7 @@
-name: Publish Python Package to PyPI
+# This workflow will upload a Python Package to PyPI when a release is created
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python#publishing-to-package-registries
+
+name: Upload Python Package
 
 on:
   release:
@@ -27,4 +30,4 @@ jobs:
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
         user: __token__
-        password: ${{ secrets.TOCKEN_PYPI }}
+        password: ${{ secrets.PYPI_API_TOKEN }}
