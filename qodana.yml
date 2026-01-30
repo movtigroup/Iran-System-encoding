@@ -1,0 +1,37 @@
+version: "1.0"
+
+profile:
+  name: qodana.starter
+
+# Docker image for Python code analysis (Community version)
+image: jetbrains/qodana-python-community:2025.2
+
+# Install Python dependencies before analysis
+bootstrap: pip install -r requirements.txt
+
+# Specify the source directories to analyze
+include:
+  - name: PythonCustomInspection
+  - name: PyCompatibilityInspection
+    params:
+      IGNORED_VERSIONS: "2.7, 3.5"
+  - name: PyPep8NamingInspection
+  - name: PyUnresolvedReferencesInspection
+  - name: PyUnusedLocalInspection
+
+# Exclude generated files and virtual environments
+exclude:
+  - name: "Generated code"
+    paths:
+      - "**/venv/**"
+      - "**/__pycache__/**"
+      - "**/*.pyc"
+      - "**/build/**"
+      - "**/dist/**"
+      - "**/*.egg-info/**"
+      - "setup_c_extension.py"  # C extension setup may cause warnings
+
+# Analysis scope
+properties:
+  - "-Dpython.check.members=true"
+  - "-Dpython.check.unresolved.refs=true"

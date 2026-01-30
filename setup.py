@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="iran-encoding",
-    version="0.2.0",
+    version="0.2.3",
     author="Jules",
     author_email="jules@movtigroup.ir",
     description="Two-stage encoding for Persian text.",
@@ -21,7 +21,6 @@ setup(
     ],
     python_requires=">=3.6",
     install_requires=[
-        "websockets>=10.0",
         "arabic_reshaper",
         "python-bidi",
     ],

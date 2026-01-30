@@ -1,2 +1,0 @@
-[console_scripts]
-iran-encoding = iran_encoding.cli:main
