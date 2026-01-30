@@ -1,14 +1,12 @@
 version: "1.0"
-linter: jetbrains/qodana-python-community:2024.3
+linter: jetbrains/qodana-python-community:latest
+
 profile:
   name: qodana.starter
 
-bootstrap: pip install .
-
+# Analysis scope properties for Python Community
 properties:
-  jetbrains.qodana.severity.profile: PROBLEM_METHOD
-  python.check.members: "true"
-  python.check.unresolved.refs: "true"
+  jetbrains.qodana.severity.profile: "PROBLEM_METHOD"
 
 exclude:
   - name: All
