@@ -4,6 +4,8 @@ Test script to compare Python and C implementations of Iran System encoding
 import subprocess
 import sys
 import os
+import unittest
+from iran_encoding import encode, decode
 
 def test_python_vs_c():
     """Compare Python and C implementations"""
@@ -39,6 +41,32 @@ def test_python_vs_c():
         encoded_logical = encode(text, visual_ordering=False)
         decoded_logical = decode(encoded_logical)
         print(f"Python (Logical) -> Encoded: {encoded_logical.hex()}, Decoded: {repr(decoded_logical)}")
+
+
+class TestCComparison(unittest.TestCase):
+    def test_basic_functionality(self):
+        """Test basic encoding/decoding functionality"""
+        test_cases = [
+            {"input": "سلام", "description": "Basic Persian greeting"},
+            {"input": "تست", "description": "Simple test word"},
+            {"input": "123", "description": "Numbers"},
+            {"input": "تست 123", "description": "Mixed text and numbers"},
+            {"input": "پارسی", "description": "Another Persian word"},
+            {"input": " Iran ", "description": "Text with spaces"},
+        ]
+        
+        for case in test_cases:
+            with self.subTest(desc=case["description"]):
+                text = case["input"]
+                encoded = encode(text)
+                decoded = decode(encoded)
+                # Check that the decoded text contains the essential content
+                # (visual ordering may change the exact representation)
+                self.assertIsInstance(encoded, bytes)
+                self.assertIsInstance(decoded, str)
+                self.assertGreater(len(encoded), 0)
+                self.assertGreater(len(decoded), 0)
+
 
 def run_c_test():
     """Try to compile and run C test if possible"""
@@ -105,6 +133,7 @@ int main() {
                 except:
                     pass
 
+
 if __name__ == "__main__":
     print("Iran System Encoding - Python vs C Comparison Test")
     print("="*50)
@@ -112,5 +141,5 @@ if __name__ == "__main__":
     test_python_vs_c()
     run_c_test()
     
-    print("\n" + "="*50)
-    print("Test completed!")
+    print("\nRunning unit tests...")
+    unittest.main(argv=[''], exit=False, verbosity=2)

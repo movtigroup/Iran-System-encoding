@@ -1,0 +1,19 @@
+version: "1.0"
+linter: jetbrains/qodana-python-community:latest
+
+profile:
+  name: qodana.starter
+
+# Analysis scope properties for Python Community
+properties:
+  jetbrains.qodana.severity.profile: "PROBLEM_METHOD"
+
+exclude:
+  - name: All
+    paths:
+      - "**/venv/**"
+      - "**/__pycache__/**"
+      - "**/*.pyc"
+      - "**/build/**"
+      - "**/dist/**"
+      - "**/*.egg-info/**"

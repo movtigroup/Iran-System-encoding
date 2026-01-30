@@ -1,207 +1,86 @@
-# -*- coding: utf-8 -*-
-
 """
-This module provides encoding and decoding functionality for the Iran System
-character set, including bidirectional text handling.
-"""
+Iran System Encoding Package - Main Module
 
+This package provides encoding and decoding functions for the Iran System character set.
+It uses a pure Python implementation of the original C logic by default,
+ensuring consistent behavior and professional results.
+"""
 import re
-import unicodedata
-from typing import List
-import arabic_reshaper
-from bidi.algorithm import get_display
-from .mappings import IRAN_SYSTEM_MAP, REVERSE_IRAN_SYSTEM_MAP, UNKNOWN_CHAR_CODE, IRAN_SYSTEM_UNICODE_NUMBERS, UNICODE_IRAN_SYSTEM_NUMBERS
+from .core import unicode_to_iransystem, iransystem_to_unicode
 
-def encode(text: str, visual_ordering: bool = False, configuration: dict = None) -> bytes:
+__version__ = "1.1.0"
+__author__ = "Community Contributors"
+__all__ = ['encode', 'decode', 'decode_hex', 'detect_locale']
+
+# Persian letters range (approximate, covering main Persian alphabet)
+PERSIAN_LETTERS_PATTERN = re.compile(r'[\u0621-\u064A\u067E\u0686\u0698\u06AF\u06A9\u06CC]')
+PERSIAN_DIGITS_MAP = {
+    '۰': '0', '۱': '1', '۲': '2', '۳': '3', '۴': '4',
+    '۵': '5', '۶': '6', '۷': '7', '۸': '8', '۹': '9'
+}
+
+def detect_locale(text):
     """
-    Encodes a string into a sequence of bytes using the Iran System map.
-    It handles text shaping for Iran System encoding which stores text in visual order.
-
-    Args:
-        text: The input string to encode.
-        visual_ordering: If True, applies additional visual reordering (not typically needed for Iran System).
-        configuration: A dictionary of configuration options for the
-            `arabic_reshaper` library.
-
+    Detect if the text should be treated as Persian ('fa') or English ('en').
+    
     Returns:
-        A bytes object representing the encoded string.
+        str: 'fa' if text contains Persian letters, 'en' otherwise.
     """
-    if not isinstance(text, str):
-        return b''
+    if PERSIAN_LETTERS_PATTERN.search(text):
+        return 'fa'
+    return 'en'
 
-    # ZWNJ is not supported by the Iran System encoding, so we temporarily replace it
-    # with a placeholder that can be recognized during encoding and decoding
-    zwnj_present = '\u200c' in text
-    text_for_encoding = text.replace('\u200c', '')  # Remove ZWNJ for encoding
-
-    # Configure the reshaper
-    if configuration is None:
-        configuration = {
-            'support_ligatures': False,
-        }
-    reshaper = arabic_reshaper.ArabicReshaper(configuration=configuration)
-
-    # Reshape the text to get correct presentation forms (this gives us visual forms)
-    reshaped_text = reshaper.reshape(text_for_encoding)
-
-    # Iran System encoding is inherently visual, so we don't need additional visual ordering
-    output_text = reshaped_text
-
-    byte_codes = []
-    for char in output_text:
-        code = REVERSE_IRAN_SYSTEM_MAP.get(char)
-        if code is None:
-            # print(f"Character not found in reverse map: '{char}' (U+{ord(char):04X})")
-            code = UNKNOWN_CHAR_CODE
-        byte_codes.append(code)
-
-    return bytes(byte_codes)
-
-def decode(data: bytes) -> str:
+def encode(text, visual_ordering=True):
     """
-    Decodes a byte string from the Iran System encoding back to a string.
-
-    Args:
-        data: The input bytes to decode.
-
-    Returns:
-        The decoded string.
-    """
-    if not isinstance(data, bytes):
-        return ''
-
-    # Decode the bytes to characters using the Iran System mapping
-    result_chars = []
-    for byte in data:
-        char = IRAN_SYSTEM_MAP.get(byte, chr(byte))  # Use character representation if not in map
-        result_chars.append(char)
-    
-    result = "".join(result_chars)
-    
-    # Iran System encoding uses specific contextual forms for Arabic/Persian letters.
-    # The mapping already converts the visual forms back to logical characters.
-    # No additional reversal is needed as the mapping handles the conversion properly.
-    
-    # Normalize to convert presentation forms to base characters
-    normalized = unicodedata.normalize('NFKD', result)
-    
-    # Handle special cases for Iran System encoding based on test expectations
-    # Certain byte sequences in Iran System encoding should result in ZWNJ insertion
-    # This handles the specific test cases that expect ZWNJ characters
-    
-    # For specific byte sequences that should include ZWNJ based on Iran System encoding behavior
-    # Check for the specific patterns that should have ZWNJ:
-    # bytes([0xA1, 0x91, 0xF7, 0xF9, 0xFB, 0x91]) -> "خانه‌ها" 
-    # bytes([0xA1, 0x91, 0xF7, 0xF9, 0xFE]) -> "خانه‌ی"
-    
-    # Since we can't directly determine from the decoded text where ZWNJ should go,
-    # we need to implement pattern recognition based on the original byte sequences
-    # However, since we only have the decoded string here, we need to apply general rules
-    
-    # Apply specific transformations based on the test expectations:
-    # When we see patterns that look like "خانه" followed by "ها" or "ی", 
-    # Iran System encoding traditionally separates them with ZWNJ
-    if normalized == "خانهها":
-        normalized = "خانه‌ها"  # Insert ZWNJ between خانه and ها
-    elif normalized == "خانهی":
-        normalized = "خانه‌ی"   # Insert ZWNJ between خانه and ی
-    
-    return normalized
-
-def decode_hex(hex_string: str) -> str:
-    """
-    Decodes a hex string into a UTF-8 string using the Iran System map.
-
-    Args:
-        hex_string: The input hex string to decode.
-
-    Returns:
-        The decoded string.
-    """
-    try:
-        if not hex_string:
-            raise ValueError("Empty hex string")
-        data = bytes.fromhex(hex_string)
-        return decode(data)
-    except (ValueError, TypeError):
-        return "Error: Invalid hex string"
-
-def unicode_number_to_iransystem(unicode_string: str) -> bytes:
-    """
-    Converts Unicode numbers (0-9) to Iran System numbers (۰-۹).
-
-    Args:
-        unicode_string: String containing Unicode digits
-
-    Returns:
-        Bytes representing the Iran System encoded numbers
-    """
-    result = []
-    for char in unicode_string:
-        if char.isdigit() and char in IRAN_SYSTEM_UNICODE_NUMBERS:
-            result.append(IRAN_SYSTEM_UNICODE_NUMBERS[char])
-        else:
-            # For non-digit characters, use the regular encoding
-            code = REVERSE_IRAN_SYSTEM_MAP.get(char, UNKNOWN_CHAR_CODE)
-            result.append(code)
-    return bytes(result)
-
-def iransystem_to_unicode_number(iransystem_bytes: bytes) -> str:
-    """
-    Converts Iran System numbers (bytes) to Unicode numbers (0-9).
-
-    Args:
-        iransystem_bytes: Bytes representing Iran System encoded numbers
-
-    Returns:
-        String with Unicode digits
-    """
-    result = []
-    for byte in iransystem_bytes:
-        if 0x80 <= byte <= 0x89:  # Iran System digits range
-            # Convert Iran System digit to Unicode digit
-            unicode_digit = chr(0x30 + (byte - 0x80))  # 0x30 is '0' in ASCII
-            result.append(unicode_digit)
-        else:
-            # For non-digit bytes, use regular decoding
-            char = IRAN_SYSTEM_MAP.get(byte, '')
-            result.append(char)
-    return "".join(result)
-
-def reverse_string(input_str: str) -> str:
-    """
-    Reverses the order of characters in a string (used for RTL processing).
+    Encode a Unicode string to Iran System encoding bytes.
     
     Args:
-        input_str: Input string to reverse
+        text (str): The Unicode string to encode.
+        visual_ordering (bool): Whether to apply visual ordering (default True).
+                               This follows the original C logic.
         
     Returns:
-        Reversed string
+        bytes: Iran System encoded bytes or ASCII bytes depending on locale.
     """
-    return input_str[::-1]
+    locale = detect_locale(text)
+    
+    if locale == 'fa':
+        # Use the core Iran System logic
+        return unicode_to_iransystem(text, reverse_flag=visual_ordering)
+    else:
+        # English/ASCII locale
+        # Convert Persian digits to ASCII if present
+        processed_text = text
+        for p_digit, a_digit in PERSIAN_DIGITS_MAP.items():
+            processed_text = processed_text.replace(p_digit, a_digit)
 
-def reverse_alpha_numeric(input_str: str) -> str:
+        return processed_text.encode('ascii', errors='replace')
+
+def decode(iransystem_bytes):
     """
-    Reverses only alphanumeric sequences within the string while keeping other characters in place.
+    Decode Iran System encoded bytes to a Unicode string.
     
     Args:
-        input_str: Input string to process
+        iransystem_bytes (bytes): Iran System encoded bytes.
         
     Returns:
-        String with reversed alphanumeric sequences
+        str: Decoded Unicode string.
     """
-    import re
+    # If the bytes look like pure ASCII (all < 128) and we don't see typical Iran System markers,
+    # it might just be ASCII. However, Iran System is a superset of ASCII for 0-127.
+    # The core logic handles this correctly.
+    return iransystem_to_unicode(iransystem_bytes)
+
+def decode_hex(hex_string):
+    """
+    Decode a hex string representing Iran System encoded bytes.
     
-    # Split the string into alphanumeric and non-alphanumeric parts
-    parts = re.split(r'([a-zA-Z0-9\u06F0-\u06F9\u0660-\u0669]+)', input_str)
-    result = []
-    
-    for part in parts:
-        if re.match(r'[a-zA-Z0-9\u06F0-\u06F9\u0660-\u0669]+', part):
-            # This is an alphanumeric sequence, reverse it
-            result.append(part[::-1])
-        else:
-            # This is a non-alphanumeric sequence, keep as is
-            result.append(part)
-    
-    return "".join(result)
+    Args:
+        hex_string (str): Hex string to decode.
+        
+    Returns:
+        str: Decoded Unicode string.
+    """
+    clean_hex = re.sub(r'[^0-9a-fA-F]', '', hex_string)
+    iransystem_bytes = bytes.fromhex(clean_hex)
+    return decode(iransystem_bytes)
