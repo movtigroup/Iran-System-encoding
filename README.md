@@ -13,7 +13,6 @@ This library provides robust two-way conversion between Unicode and the Iran Sys
 - **Comprehensive Character Set**: The character map is based on the Iran System standard and includes a wide range of presentation forms for Persian letters, as well as standard ASCII and Persian digits.
 - **Fallback for Unknown Characters**: Gracefully handles characters not in the map by replacing them with a `'?'`.
 - **Command-Line Interface**: Includes a CLI tool for easy encoding and decoding from the terminal.
-- **WebSocket Support**: Provides a simple WebSocket server and client for remote encoding/decoding tasks.
 
 ## Installation
 
@@ -85,11 +84,6 @@ To get the output in logical order, use the `--logical` flag:
 iran-encoding encode "Test: تست" --logical
 ```
 
-You can also provide a JSON string with configuration options for the `arabic_reshaper` library using the `--config` flag. For example, to enable ligatures:
-```bash
-iran-encoding encode "سلام" --config '{"support_ligatures": true}'
-```
-
 ### `decode`
 
 The `decode` command requires the input to be a Python bytes literal string.
@@ -109,26 +103,3 @@ The `decode-hex` command decodes a string of hexadecimal characters into text.
 iran-encoding decode-hex 546573743a20919d8f
 ```
 This will print the decoded string: `Test: تست`
-
-## WebSocket Support
-
-This library also provides WebSocket support for both a server and a client.
-
-### WebSocket Server
-
-You can start a WebSocket server that will listen for incoming messages and encode or decode them.
-
-```bash
-iran-encoding ws-server --host 0.0.0.0 --port 8765
-```
-
-The server expects messages in the format `"command:data"`, where `command` is one of `encode`, `decode`, or `decode-hex`.
-
-### WebSocket Client
-
-You can use the WebSocket client to send a message to the server and receive the response.
-
-```bash
-iran-encoding ws-client ws://localhost:8765 "encode:سلام"
-```
-This will send the message `"encode:سلام"` to the server and print the response.
