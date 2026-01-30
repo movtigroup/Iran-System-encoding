@@ -29,8 +29,7 @@ def main():
 
     if args.command == "encode":
         try:
-            config = json.loads(args.config) if args.config else None
-            encoded_result = encode(args.text, visual_ordering=not args.logical, configuration=config)
+            encoded_result = encode(args.text, visual_ordering=not args.logical)
             # Print a space-separated hex string
             hex_output = " ".join(f"{b:02x}" for b in encoded_result)
             print(hex_output)
