@@ -21,10 +21,8 @@ jobs:
           python -m pip install --upgrade pip
           pip install .
       - name: Qodana Scan
-        uses: JetBrains/qodana-action@v2023.2.9
+        uses: JetBrains/qodana-action@v2024.3
         env:
           QODANA_TOKEN: ${{ secrets.QODANA_TOKEN }}
         with:
-          args: |
-            --apply-fixes
-            -c .qodana/qodana.yml
+          args: --apply-fixes --yaml-name .qodana/qodana.yml
