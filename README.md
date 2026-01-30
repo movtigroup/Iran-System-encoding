@@ -16,7 +16,7 @@ A high-performance, professional Python library for the legacy **Iran System** c
 - **✅ Intelligent Locale Detection**:
   - **Context-Aware**: Automatically detects if the text is Persian (`fa`) or English (`en`).
   - **Smart Numbers**: Automatically converts digits to Iran System format in Persian contexts, and keeps them as ASCII in English contexts.
-- **✅ Precise Visual Ordering**: Implements the exact rule-based reshaping and visual layout logic from original legacy C systems.
+- **✅ Precise Visual Ordering**: Improved in-place reversal logic that handles mixed English and Persian text flawlessly, keeping English/Numbers LTR while correctly reversing Persian visual chunks.
 - **✅ Command-Line Interface (CLI)**: A built-in tool for quick terminal-based operations.
 
 ---

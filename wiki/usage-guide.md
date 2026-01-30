@@ -27,8 +27,11 @@ Determines if text contains Persian characters.
 ## Intelligent Behavior
 
 ### Mixed Language Strings
-- If a string contains **at least one Persian letter**, the entire string is processed using the Iran System flow. Numbers within this string are converted to Iran System Persian digits.
-- If a string contains **only English letters and numbers** (even Persian digits), it is processed using the English (ASCII) flow. Persian digits are normalized to ASCII 0-9.
+- The library uses a sophisticated **in-place reversal** logic for mixed text.
+- **English and Numbers** remain in their logical Left-To-Right (LTR) order even when part of a Persian sequence.
+- **Persian letters and symbols** are correctly reversed for visual display.
+- This ensures that a string like `"hi سلام 123"` results in a byte stream that displays correctly on visual terminals.
+- If a string contains **only English letters and numbers**, it is processed using the English (ASCII) flow for maximum compatibility.
 
 ## Performance Optimization
 For high-volume processing, it is recommended to compile the C extension:

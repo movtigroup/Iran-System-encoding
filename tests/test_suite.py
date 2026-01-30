@@ -14,6 +14,7 @@ from test_converter import TestConverter
 from test_encoding_functions import TestEncodingFunctions
 from test_exact_behavior import TestExactBehavior
 from test_iran_system_v1 import TestIranSystemV1
+from test_mixed_reversal import TestMixedReversal
 
 
 def create_test_suite():
@@ -22,7 +23,10 @@ def create_test_suite():
     suite = unittest.TestSuite()
     
     # Add all test classes
-    test_classes = [TestConverter, TestEncodingFunctions, TestExactBehavior, TestIranSystemV1]
+    test_classes = [
+        TestConverter, TestEncodingFunctions, TestExactBehavior,
+        TestIranSystemV1, TestMixedReversal
+    ]
     
     for test_class in test_classes:
         tests = loader.loadTestsFromTestCase(test_class)

@@ -10,7 +10,7 @@ requirements = ["setuptools>=65.0.0"]
 
 setup(
     name="iran-encoding",
-    version="1.1.0",
+    version="1.2.0",
     author="Iran System encoding",
     author_email="Iran-System-encoding@movtigroup.ir",
     description="Professional Iran System encoding library with Persian/English support",

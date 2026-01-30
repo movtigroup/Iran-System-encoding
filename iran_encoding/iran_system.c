@@ -15,7 +15,7 @@ const unsigned char iransystemNumberStr[] = {0x80, 0x81, 0x82, 0x83, 0x84, 0x85,
 const unsigned char unicodeStr[] = {
     0xC2, 0xC8, 0x81, 0xCA, 0xCB, 0xCC, 0x8D, 0xCD, 0xCE, 0xCF, 0xD0, 0xD1, 0xD2,
     0x8E, 0xD3, 0xD4, 0xD5, 0xD6, 0xD8, 0xD9, 0xDD, 0xDE, 0x98, 0x90, 0xE1, 0xE3,
-    0xE4, 0xE6, 0x80, 0x8A, 0x82, 0x83, 0x84, 0x85, 0x86, 0x87, 0x88, 0x89, 0x20,
+    0xE4, 0xE6, 0x80, 0x81, 0x82, 0x83, 0x84, 0x85, 0x86, 0x87, 0x88, 0x89, 0x20,
     0xA1, 0xC1, 0
 };
 
@@ -66,7 +66,7 @@ const unsigned int wideCharStr[] = {
 const unsigned char UTF8Str[] = {
     0xC2, 0xC8, 0x81, 0xCA, 0xCB, 0xCC, 0x8D, 0xCD, 0xCE, 0xCF, 0xD0, 0xD1, 0xD2,
     0x8E, 0xD3, 0xD4, 0xD5, 0xD6, 0xD8, 0xD9, 0xDA, 0xDB, 0xDD, 0xDE, 0x98, 0x90,
-    0xE1, 0xE3, 0xE4, 0xE6, 0xE5, 0xED, 0x80, 0x8A, 0x82, 0x83, 0x84, 0x85, 0x86,
+    0xE1, 0xE3, 0xE4, 0xE6, 0xE5, 0xED, 0x80, 0x81, 0x82, 0x83, 0x84, 0x85, 0x86,
     0x87, 0x88, 0x89, 0x20, 0xA1, 0xC7, 0xED, 0xED, 0xC1, 0x98, 0x98, 0xC1, 0
 };
 
@@ -106,49 +106,31 @@ void IransystemToUpper(unsigned char *inString, unsigned char *outString) {
     outString[len] = 0;
 }
 
-void ReverseIransystem(unsigned char *inString, unsigned char *outString) {
-    unsigned int byteCount, numberCount;
-    unsigned int numberPosition = 0;
+void ReversePersianChunks(unsigned char *inString, unsigned char *outString) {
+    unsigned int i, j;
+    int start = -1;
     unsigned int len = strlen((char*)inString);
 
-    for (byteCount = 0; byteCount <= len; byteCount++) {
-        unsigned char current = (byteCount < len) ? inString[byteCount] : 0x20; // Space as end marker
+    strcpy((char*)outString, (char*)inString);
 
-        if (current < 80) {
-            if ((byteCount - numberPosition) > 1) {
-                for (numberCount = numberPosition; numberCount < byteCount; numberCount++) {
-                    outString[numberCount] = inString[byteCount - (numberCount - numberPosition) - 1];
+    for (i = 0; i <= len; i++) {
+        unsigned char current = (i < len) ? inString[i] : 0x00;
+
+        // Reversible Persian letters and symbols (0x8A to 0xFE)
+        // This excludes Persian digits (0x80-0x89) to keep them logical LTR.
+        int is_reversible = (current >= 0x8A && current <= 0xFE);
+
+        if (is_reversible) {
+            if (start == -1) start = i;
+        } else {
+            if (start != -1) {
+                // Reverse the Persian chunk [start, i-1]
+                int chunkLen = i - start;
+                for (j = 0; j < (unsigned int)chunkLen; j++) {
+                    outString[start + j] = inString[i - 1 - j];
                 }
+                start = -1;
             }
-            numberPosition = byteCount + 1;
-            if (byteCount < len) {
-                outString[byteCount] = inString[byteCount];
-            }
-        }
-    }
-    outString[len] = 0;
-}
-
-void ReverseAlphaNumeric(unsigned char *inString, unsigned char *outString) {
-    unsigned int byteCount, numberCount;
-    unsigned int numberPosition = 0;
-    unsigned int len = strlen((char*)inString);
-
-    for (byteCount = 0; byteCount <= len; byteCount++) {
-        unsigned char current = (byteCount < len) ? inString[byteCount] : 0xFF;
-
-        // Trigger reversal on Persian letters or special markers
-        int is_trigger = (current > 0x8C && current != 0xFF) || current < 0x20 || current == 0x8E || current == 0x8F;
-        if (is_trigger || byteCount == len) {
-            if ((byteCount - numberPosition) > 1) {
-                for (numberCount = numberPosition; numberCount < byteCount; numberCount++) {
-                    outString[numberCount] = inString[byteCount - (numberCount - numberPosition) - 1];
-                }
-            }
-            numberPosition = byteCount + 1;
-        }
-        if (byteCount < len) {
-            outString[byteCount] = inString[byteCount];
         }
     }
     outString[len] = 0;
@@ -158,21 +140,14 @@ void IransystemToUnicode(unsigned char *inString, unsigned char *outString) {
     unsigned int byteCount;
     unsigned int len = strlen((char*)inString);
     int posIndex;
-    unsigned char reversed[2048];
     unsigned char logical[2048];
 
     if (len >= 2048) len = 2047;
 
-    // Step 1: Reverse whole string to handle visual RTL input
-    for (byteCount = 0; byteCount < len; byteCount++) {
-        reversed[byteCount] = inString[len - 1 - byteCount];
-    }
-    reversed[len] = 0;
+    // Step 1: Reverse Persian chunks back to logical order
+    ReversePersianChunks(inString, logical);
 
-    // Step 2: Fix chunks of English/numbers
-    ReverseAlphaNumeric(reversed, logical);
-
-    // Step 3: Convert to Unicode
+    // Step 2: Convert to Unicode
     for (byteCount = 0; byteCount < len; byteCount++) {
         posIndex = FindPos(logical[byteCount], iransystemUpperStr);
         if (posIndex < 0) {
@@ -227,83 +202,82 @@ unsigned char UnicodeToPersianScript(unsigned int unicodeChar) {
 
 void UnicodeToIransystem(unsigned char *unicodeString, unsigned char *iransystemString) {
     unsigned char prevByte, nextByte;
-    unsigned int byteCount;
+    unsigned int i;
     unsigned int len;
     int posIndex;
+    unsigned char intermediate[2048];
 
     len = strlen((char*)unicodeString);
+    if (len >= 2048) len = 2047;
 
-    if (reverseAlphaNumericFlag) {
-        ReverseAlphaNumeric(unicodeString, iransystemString);
-    } else {
-        strcpy((char*)iransystemString, (char*)unicodeString);
-    }
+    // Step 1: Reshape in logical order
+    for (i = 0; i < len; i++) {
+        prevByte = (i > 0) ? unicodeString[i - 1] : 0;
+        nextByte = (i < (len - 1)) ? unicodeString[i + 1] : 0;
 
-    len = strlen((char*)iransystemString);
-    for (byteCount = 0; byteCount < len; byteCount++) {
-        prevByte = (byteCount > 0) ? iransystemString[byteCount - 1] : 0;
-        nextByte = (byteCount < (len - 1)) ? iransystemString[byteCount + 1] : 0;
-
-        posIndex = FindPos(iransystemString[byteCount], unicodeStr);
+        posIndex = FindPos(unicodeString[i], unicodeStr);
         if (posIndex >= 0) {
             if (FindPos(nextByte, nextCharStr) >= 0) {
-                iransystemString[byteCount] = iransystemLowerStr[posIndex];
+                intermediate[i] = iransystemLowerStr[posIndex];
             } else {
-                iransystemString[byteCount] = iransystemUpperStr[posIndex];
+                intermediate[i] = iransystemUpperStr[posIndex];
             }
         } else {
-            switch (iransystemString[byteCount]) {
+            intermediate[i] = unicodeString[i];
+            switch (unicodeString[i]) {
                 case 218: // ein
                     if (FindPos(nextByte, nextCharStr) >= 0) {
-                        if (FindPos(prevByte, prevCharStr) >= 0) iransystemString[byteCount] = 227;
-                        else iransystemString[byteCount] = 228;
+                        if (FindPos(prevByte, prevCharStr) >= 0) intermediate[i] = 227;
+                        else intermediate[i] = 228;
                     } else {
-                        if (FindPos(prevByte, prevCharStr) >= 0) iransystemString[byteCount] = 226;
-                        else iransystemString[byteCount] = 225;
+                        if (FindPos(prevByte, prevCharStr) >= 0) intermediate[i] = 226;
+                        else intermediate[i] = 225;
                     }
                     break;
                 case 219: // ghein
                     if (FindPos(nextByte, nextCharStr) >= 0) {
-                        if (FindPos(prevByte, prevCharStr) >= 0) iransystemString[byteCount] = 231;
-                        else iransystemString[byteCount] = 232;
+                        if (FindPos(prevByte, prevCharStr) >= 0) intermediate[i] = 231;
+                        else intermediate[i] = 232;
                     } else {
-                        if (FindPos(prevByte, prevCharStr) >= 0) iransystemString[byteCount] = 230;
-                        else iransystemString[byteCount] = 229;
+                        if (FindPos(prevByte, prevCharStr) >= 0) intermediate[i] = 230;
+                        else intermediate[i] = 229;
                     }
                     break;
                 case 229: // he
                     if (FindPos(nextByte, nextCharStr) >= 0) {
-                        if (FindPos(prevByte, prevCharStr) >= 0) iransystemString[byteCount] = 250;
-                        else iransystemString[byteCount] = 251;
+                        if (FindPos(prevByte, prevCharStr) >= 0) intermediate[i] = 250;
+                        else intermediate[i] = 251;
                     } else {
-                        iransystemString[byteCount] = 249;
+                        intermediate[i] = 249;
                     }
                     break;
                 case 199: // alef
-                    if (FindPos(prevByte, prevCharStr) >= 0) iransystemString[byteCount] = 145;
-                    else iransystemString[byteCount] = 144;
+                    if (FindPos(prevByte, prevCharStr) >= 0) intermediate[i] = 145;
+                    else intermediate[i] = 144;
                     break;
                 case 237: // ye
-                    if (FindPos(nextByte, nextCharStr) >= 0) iransystemString[byteCount] = 254;
+                    if (FindPos(nextByte, nextCharStr) >= 0) intermediate[i] = 254;
                     else {
-                        if (FindPos(prevByte, prevCharStr) >= 0) iransystemString[byteCount] = 252;
-                        else iransystemString[byteCount] = 253;
+                        if (FindPos(prevByte, prevCharStr) >= 0) intermediate[i] = 252;
+                        else intermediate[i] = 253;
+                    }
+                    break;
+                default:
+                    // Handle numbers: convert ASCII digits to Iran System digits
+                    if (unicodeString[i] >= '0' && unicodeString[i] <= '9') {
+                        posIndex = FindPos(unicodeString[i], unicodeNumberStr);
+                        if (posIndex >= 0) intermediate[i] = iransystemNumberStr[posIndex];
                     }
                     break;
             }
         }
     }
-    iransystemString[len] = 0;
+    intermediate[len] = 0;
 
-    // Final reversal for visual RTL
+    // Step 2: Perform reversal on Persian chunks if requested
     if (reverseAlphaNumericFlag) {
-        unsigned char finalReverse[2048];
-        for (byteCount = 0; byteCount < len; byteCount++) {
-            finalReverse[byteCount] = iransystemString[len - 1 - byteCount];
-        }
-        for (byteCount = 0; byteCount < len; byteCount++) {
-            iransystemString[byteCount] = finalReverse[byteCount];
-        }
-        iransystemString[len] = 0;
+        ReversePersianChunks(intermediate, iransystemString);
+    } else {
+        strcpy((char*)iransystemString, (char*)intermediate);
     }
 }

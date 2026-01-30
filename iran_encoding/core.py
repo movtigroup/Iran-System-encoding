@@ -106,71 +106,35 @@ def iransystem_to_upper(in_bytes: bytes) -> bytes:
     return bytes(out_list)
 
 
-def iransystem_to_unicode_script(in_bytes: bytes) -> bytes:
-    """Convert Iran System bytes to the intermediate Unicode script representation."""
-    out_list = []
-    for b in in_bytes:
-        pos_index = find_pos(b, IRANSYSTEM_UPPER_STR)
-        if pos_index < 0:
-            pos_index = find_pos(b, IRANSYSTEM_UPPER_STR_TAIL)
-            if pos_index < 0:
-                out_list.append(b)
-            else:
-                out_list.append(UNICODE_STR_TAIL[pos_index])
+def reverse_persian_chunks(in_bytes: bytes) -> bytes:
+    """
+    Reverse only the Persian character sequences in a byte stream,
+    maintaining the logical order of other characters (English, numbers, symbols).
+    Persian letters and symbols (>= 0x8A) are reversed, while digits (0x80-0x89)
+    and ASCII (< 0x80) are kept in their logical LTR order.
+    """
+    length = len(in_bytes)
+    out = bytearray(in_bytes)
+    start = -1
+
+    for i in range(length + 1):
+        current = in_bytes[i] if i < length else 0x00
+
+        # In Iran System:
+        # 0x80-0x89: Persian digits (keep LTR)
+        # 0x8A-0xFE: Persian letters and symbols (reverse for visual RTL)
+        # < 0x80: ASCII (keep LTR)
+        is_reversible = (0x8A <= current <= 0xFE)
+
+        if is_reversible:
+            if start == -1:
+                start = i
         else:
-            out_list.append(UNICODE_STR[pos_index])
-    return bytes(out_list)
-
-
-def reverse(in_bytes: bytes) -> bytes:
-    """Reverse a byte array."""
-    return in_bytes[::-1]
-
-
-def reverse_alpha_numeric(in_bytes: bytes) -> bytes:
-    """
-    Reverse alphanumeric sequences in a way that respects Iran System visual order.
-    Improved to treat numbers and symbols as part of reversible chunks.
-    """
-    length = len(in_bytes)
-    out = bytearray(in_bytes)
-    number_position = 0
-
-    for byte_count in range(length + 1):
-        current = in_bytes[byte_count] if byte_count < length else 0xFF
-
-        # Trigger reversal on Persian letters or special markers
-        # In Iran System, letters start from 0x8D (excluding some symbols)
-        is_trigger = (current > 0x8C and current != 0xFF) or current < 0x20 or current == 0x8E or current == 0x8F
-        if is_trigger or byte_count == length:
-            if (byte_count - number_position) > 1:
-                for number_count in range(number_position, byte_count):
-                    out[number_count] = in_bytes[byte_count - (number_count - number_position) - 1]
-            number_position = byte_count + 1
-
-        if byte_count < length:
-            out[byte_count] = in_bytes[byte_count]
-
-    return bytes(out)
-
-
-def reverse_iransystem(in_bytes: bytes) -> bytes:
-    """Reverse Iran System bytes while keeping non-Iran System characters in order."""
-    length = len(in_bytes)
-    out = bytearray(in_bytes)
-    number_position = 0
-
-    for byte_count in range(length + 1):
-        current = in_bytes[byte_count] if byte_count < length else ord(' ')
-
-        if current < 80:
-            if (byte_count - number_position) > 1:
-                for number_count in range(number_position, byte_count):
-                    out[number_count] = in_bytes[byte_count - (number_count - number_position) - 1]
-            number_position = byte_count + 1
-            if byte_count < length:
-                out[byte_count] = in_bytes[byte_count]
-
+            if start != -1:
+                # Reverse the found Persian chunk [start:i]
+                chunk = out[start:i]
+                out[start:i] = chunk[::-1]
+                start = -1
     return bytes(out)
 
 
@@ -199,90 +163,86 @@ def unicode_to_persian_script(unicode_char_code: int) -> int:
 def unicode_to_iransystem(unicode_string: str, reverse_flag: bool = True) -> bytes:
     """
     Main function to convert Unicode string to Iran System bytes.
-    Matches the logic of UnicodeToIransystem in C.
+    Applies contextual reshaping and optional Persian-only reversal.
     """
-    # First convert Unicode to the intermediate "Persian Script" bytes
+    # Step 1: Convert Unicode to the intermediate "Persian Script" bytes in logical order
     script_bytes = bytearray()
     for char in unicode_string:
         script_bytes.append(unicode_to_persian_script(ord(char)))
 
-    if reverse_flag:
-        input_bytes = reverse_alpha_numeric(bytes(script_bytes))
-    else:
-        input_bytes = bytes(script_bytes)
+    # Step 2: Apply contextual reshaping while still in logical order
+    input_codes = bytes(script_bytes)
+    result = bytearray(input_codes)
+    length = len(input_codes)
 
-    result = bytearray(input_bytes)
-    length = len(input_bytes)
+    for i in range(length):
+        prev_byte = input_codes[i - 1] if i > 0 else 0
+        next_byte = input_codes[i + 1] if i < (length - 1) else 0
 
-    for byte_count in range(length):
-        prev_byte = input_bytes[byte_count - 1] if byte_count > 0 else 0
-        next_byte = input_bytes[byte_count + 1] if byte_count < (length - 1) else 0
-
-        current_byte = input_bytes[byte_count]
+        current_byte = input_codes[i]
         pos_index = find_pos(current_byte, UNICODE_STR)
 
         if pos_index >= 0:
             if find_pos(next_byte, NEXT_CHAR_STR) >= 0:
-                result[byte_count] = IRANSYSTEM_LOWER_STR[pos_index]
+                result[i] = IRANSYSTEM_LOWER_STR[pos_index]
             else:
-                result[byte_count] = IRANSYSTEM_UPPER_STR[pos_index]
+                result[i] = IRANSYSTEM_UPPER_STR[pos_index]
         else:
             # Special cases for complex Persian characters
             if current_byte == 218:  # ein
                 if find_pos(next_byte, NEXT_CHAR_STR) >= 0:
                     if find_pos(prev_byte, PREV_CHAR_STR) >= 0:
-                        result[byte_count] = 227  # medial
+                        result[i] = 227  # medial
                     else:
-                        result[byte_count] = 228  # initial
+                        result[i] = 228  # initial
                 else:
                     if find_pos(prev_byte, PREV_CHAR_STR) >= 0:
-                        result[byte_count] = 226  # final connected
+                        result[i] = 226  # final connected
                     else:
-                        result[byte_count] = 225  # final isolated
+                        result[i] = 225  # final isolated
             elif current_byte == 219:  # ghein
                 if find_pos(next_byte, NEXT_CHAR_STR) >= 0:
                     if find_pos(prev_byte, PREV_CHAR_STR) >= 0:
-                        result[byte_count] = 231  # medial
+                        result[i] = 231  # medial
                     else:
-                        result[byte_count] = 232  # initial
+                        result[i] = 232  # initial
                 else:
                     if find_pos(prev_byte, PREV_CHAR_STR) >= 0:
-                        result[byte_count] = 230  # final connected
+                        result[i] = 230  # final connected
                     else:
-                        result[byte_count] = 229  # final isolated
+                        result[i] = 229  # final isolated
             elif current_byte == 229:  # he
                 if find_pos(next_byte, NEXT_CHAR_STR) >= 0:
                     if find_pos(prev_byte, PREV_CHAR_STR) >= 0:
-                        result[byte_count] = 250  # medial
+                        result[i] = 250  # medial
                     else:
-                        result[byte_count] = 251  # initial
+                        result[i] = 251  # initial
                 else:
-                    result[byte_count] = 249  # final
+                    result[i] = 249  # final
             elif current_byte == 199:  # alef
                 if find_pos(prev_byte, PREV_CHAR_STR) >= 0:
-                    result[byte_count] = 145  # connected
+                    result[i] = 145  # connected
                 else:
-                    result[byte_count] = 144  # isolated
+                    result[i] = 144  # isolated
             elif current_byte == 237:  # ye
                 if find_pos(next_byte, NEXT_CHAR_STR) >= 0:
-                    result[byte_count] = 254  # medial
+                    result[i] = 254  # medial
                 else:
                     if find_pos(prev_byte, PREV_CHAR_STR) >= 0:
-                        result[byte_count] = 252  # final connected
+                        result[i] = 252  # final connected
                     else:
-                        result[byte_count] = 253  # final isolated
+                        result[i] = 253  # final isolated
             else:
-                # Handle numbers
+                # Handle numbers: convert ASCII digits to Iran System digits
                 if ord('0') <= current_byte <= ord('9'):
                     p_idx = find_pos(current_byte, UNICODE_NUMBER_STR)
                     if p_idx >= 0:
-                        result[byte_count] = IRANSYSTEM_NUMBER_STR[p_idx]
+                        result[i] = IRANSYSTEM_NUMBER_STR[p_idx]
 
-    final_result = bytes(result)
+    # Step 3: Perform reversal on Persian chunks if requested
     if reverse_flag:
-        # Final reversal for visual RTL systems
-        return final_result[::-1]
-    return final_result
+        return reverse_persian_chunks(bytes(result))
+    return bytes(result)
 
 
 def persian_script_to_unicode(utf8_char_byte: int) -> int:
@@ -297,12 +257,10 @@ def persian_script_to_unicode(utf8_char_byte: int) -> int:
 def iransystem_to_unicode(in_bytes: bytes) -> str:
     """
     Convert Iran System bytes to Unicode string.
-    Ported from IransystemToUnicode in C, improved to handle all forms and visual order.
+    Correctly handles visual order by un-reversing Persian chunks.
     """
-    # Step 1: Reverse whole string and fix chunks to get back to logical order
-    # (Assuming visual input)
-    reversed_bytes = in_bytes[::-1]
-    logical_bytes = reverse_alpha_numeric(reversed_bytes)
+    # Step 1: Reverse Persian chunks back to logical order
+    logical_bytes = reverse_persian_chunks(in_bytes)
 
     # Step 2: Convert to upper (isolated/final) forms to handle all visual variants
     upper_bytes = iransystem_to_upper(logical_bytes)
