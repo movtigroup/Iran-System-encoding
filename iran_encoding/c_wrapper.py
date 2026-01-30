@@ -1,227 +1,132 @@
 """
-Python wrapper for the Iran System C library functions.
+Professional Python wrapper for the Iran System C library.
+Provides performance-optimized alternatives to the pure Python core implementation.
 """
 import ctypes
 import os
-import sys
 import platform
 import subprocess
-import tempfile
-
+from pathlib import Path
 
 def _compile_c_library():
-    """Compile the Iran System C library if needed."""
-    current_dir = os.path.dirname(__file__)
-    c_source = os.path.join(current_dir, "iran_system.c")
-    lib_name = ""
+    """Compile the Iran System C library if a compiler is available."""
+    current_dir = Path(__file__).parent
+    c_source = current_dir / "iran_system.c"
     
-    # Determine library name based on platform
-    if platform.system() == "Windows":
+    system = platform.system()
+    if system == "Windows":
         lib_name = "iran_system.dll"
-    elif platform.system() == "Darwin":
+    elif system == "Darwin":
         lib_name = "libiran_system.dylib"
     else:
         lib_name = "libiran_system.so"
     
-    lib_path = os.path.join(current_dir, lib_name)
+    lib_path = current_dir / lib_name
     
-    # Check if library already exists and is newer than the source
-    if os.path.exists(lib_path):
-        if os.path.exists(c_source) and os.path.getmtime(lib_path) >= os.path.getmtime(c_source):
-            return lib_path
+    # Check if we need to recompile
+    if lib_path.exists():
+        if c_source.exists() and lib_path.stat().st_mtime >= c_source.stat().st_mtime:
+            return str(lib_path)
     
-    # Try to compile the C code
-    try:
-        if platform.system() == "Windows":
-            # Try with different Windows compilers
-            compilers = [
-                ["gcc", "-shared", "-fPIC", "-o", lib_path, c_source],
-                ["clang", "-shared", "-fPIC", "-o", lib_path, c_source]
-            ]
-        else:
-            compilers = [
-                ["gcc", "-shared", "-fPIC", "-o", lib_path, c_source],
-                ["clang", "-shared", "-fPIC", "-o", lib_path, c_source]
-            ]
-        
-        for cmd in compilers:
-            try:
-                subprocess.run(cmd, check=True, capture_output=True, text=True)
-                return lib_path
-            except (subprocess.CalledProcessError, FileNotFoundError):
-                continue
-        
-        print("Warning: Could not compile C library. Falling back to Python implementation.")
-        return None
-    except Exception as e:
-        print(f"Warning: Could not compile C library: {e}. Falling back to Python implementation.")
+    if not c_source.exists():
         return None
 
-
-def _load_c_library():
-    """Load the compiled C library."""
-    current_dir = os.path.dirname(__file__)
+    # Compilation commands to try
+    compilers = [
+        ["gcc", "-shared", "-fPIC", "-O3", "-o", str(lib_path), str(c_source)],
+        ["clang", "-shared", "-fPIC", "-O3", "-o", str(lib_path), str(c_source)],
+    ]
     
-    # Determine library name based on platform
-    if platform.system() == "Windows":
-        possible_names = ["iran_system.dll"]
-    elif platform.system() == "Darwin":
-        possible_names = ["libiran_system.dylib", "iran_system.dylib"]
-    else:
-        possible_names = ["libiran_system.so", "iran_system.so"]
-    
-    # Try to find existing library
-    for lib_name in possible_names:
-        lib_path = os.path.join(current_dir, lib_name)
-        if os.path.exists(lib_path):
-            try:
-                lib = ctypes.CDLL(lib_path)
-                # Set up function signatures
-                _setup_function_signatures(lib)
-                return lib
-            except OSError:
-                continue
-    
-    # If no library exists, try to compile it
-    compiled_path = _compile_c_library()
-    if compiled_path and os.path.exists(compiled_path):
+    for cmd in compilers:
         try:
-            lib = ctypes.CDLL(compiled_path)
-            # Set up function signatures
-            _setup_function_signatures(lib)
-            return lib
-        except OSError:
-            pass
-    
+            subprocess.run(cmd, check=True, capture_output=True)
+            return str(lib_path)
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            continue
+
     return None
 
+def _load_c_library():
+    """Attempt to load the C library, compiling it if necessary."""
+    lib_path = _compile_c_library()
+    if not lib_path:
+        return None
 
-def _setup_function_signatures(lib):
-    """Set up function signatures for the C library."""
     try:
-        # Define the function signatures based on the C header
-        lib.UnicodeToIransystem.argtypes = [ctypes.c_char_p, ctypes.POINTER(ctypes.c_char)]
+        lib = ctypes.CDLL(lib_path)
+
+        # Configure function signatures
+        lib.UnicodeToIransystem.argtypes = [ctypes.c_char_p, ctypes.c_char_p]
         lib.UnicodeToIransystem.restype = None
         
-        lib.IransystemToUnicode.argtypes = [ctypes.c_char_p, ctypes.POINTER(ctypes.c_char)]
+        lib.IransystemToUnicode.argtypes = [ctypes.c_char_p, ctypes.c_char_p]
         lib.IransystemToUnicode.restype = None
         
-        lib.UnicodeNumberToIransystem.argtypes = [ctypes.c_char_p, ctypes.POINTER(ctypes.c_char)]
+        lib.UnicodeNumberToIransystem.argtypes = [ctypes.c_char_p, ctypes.c_char_p]
         lib.UnicodeNumberToIransystem.restype = None
         
-        lib.IransystemToUpper.argtypes = [ctypes.c_char_p, ctypes.POINTER(ctypes.c_char)]
-        lib.IransystemToUpper.restype = None
+        lib.ReverseIransystem.argtypes = [ctypes.c_char_p, ctypes.c_char_p]
+        lib.ReverseIransystem.restype = None
         
-        lib.Reverse.argtypes = [ctypes.c_char_p, ctypes.POINTER(ctypes.c_char)]
-        lib.Reverse.restype = None
+        lib.UnicodeToPersianScript.argtypes = [ctypes.c_uint]
+        lib.UnicodeToPersianScript.restype = ctypes.c_ubyte
         
-        lib.ReverseAlphaNumeric.argtypes = [ctypes.c_char_p, ctypes.POINTER(ctypes.c_char)]
-        lib.ReverseAlphaNumeric.restype = None
-    except AttributeError:
-        # Some functions might not exist in the compiled library
-        pass
+        return lib
+    except Exception:
+        return None
 
+# Singleton instance of the loaded C library
+C_LIB = _load_c_library()
 
-# Load the C library
-c_lib = _load_c_library()
-
+def is_available():
+    """Check if the C extension is available for use."""
+    return C_LIB is not None
 
 def unicode_to_iransystem_c(unicode_str):
     """
-    Convert Unicode string to Iran System encoding using C implementation.
+    Convert Unicode string to Iran System using C implementation.
     """
-    if c_lib is None:
+    if not C_LIB:
         return None
-    
+        
     try:
-        # Prepare input/output buffers
-        input_bytes = unicode_str.encode('utf-8')
-        max_output_size = len(input_bytes) * 4  # Allocate enough space
+        # Step 1: Convert Unicode to Persian Script bytes using C helper
+        script_bytes = bytearray()
+        for char in unicode_str:
+            script_bytes.append(C_LIB.UnicodeToPersianScript(ord(char)))
+
+        # Step 2: Use the main conversion logic
+        max_size = len(script_bytes) + 256
+        output = ctypes.create_string_buffer(max_size)
+        C_LIB.UnicodeToIransystem(bytes(script_bytes), output)
         
-        # Create buffers
-        input_buffer = ctypes.create_string_buffer(input_bytes)
-        output_buffer = ctypes.create_string_buffer(max_output_size)
-        
-        # Call the C function
-        c_lib.UnicodeToIransystem(input_buffer, output_buffer)
-        
-        # Get the result
-        result_bytes = output_buffer.raw
-        # Find the null terminator
-        null_pos = result_bytes.find(b'\x00')
-        if null_pos != -1:
-            result_bytes = result_bytes[:null_pos]
-        else:
-            # Remove trailing null bytes
-            result_bytes = result_bytes.rstrip(b'\x00')
-        
-        return result_bytes
+        return output.value
     except Exception:
         return None
-
-
-def unicode_number_to_iransystem_c(unicode_str):
-    """
-    Convert Unicode numbers to Iran System numbers using C implementation.
-    """
-    if c_lib is None:
-        return None
-    
-    try:
-        # Prepare input/output buffers
-        input_bytes = unicode_str.encode('utf-8')
-        max_output_size = len(input_bytes) * 4  # Allocate enough space
-        
-        # Create buffers
-        input_buffer = ctypes.create_string_buffer(input_bytes)
-        output_buffer = ctypes.create_string_buffer(max_output_size)
-        
-        # Call the C function
-        c_lib.UnicodeNumberToIransystem(input_buffer, output_buffer)
-        
-        # Get the result
-        result_bytes = output_buffer.raw
-        # Find the null terminator
-        null_pos = result_bytes.find(b'\x00')
-        if null_pos != -1:
-            result_bytes = result_bytes[:null_pos]
-        else:
-            # Remove trailing null bytes
-            result_bytes = result_bytes.rstrip(b'\x00')
-        
-        return result_bytes
-    except Exception:
-        return None
-
 
 def iransystem_to_unicode_c(iransystem_bytes):
     """
     Convert Iran System bytes to Unicode using C implementation.
     """
-    if c_lib is None:
+    if not C_LIB:
         return None
-    
+        
     try:
-        # Prepare input/output buffers
-        max_output_size = len(iransystem_bytes) * 4  # Allocate enough space
+        max_size = len(iransystem_bytes) * 4 + 256
+        output = ctypes.create_string_buffer(max_size)
+        C_LIB.IransystemToUnicode(iransystem_bytes, output)
         
-        # Create buffers
-        input_buffer = ctypes.create_string_buffer(iransystem_bytes)
-        output_buffer = ctypes.create_string_buffer(max_output_size)
+        # The result from C is the intermediate "Persian Script" bytes
+        # We need to map them back to actual Unicode characters
+        script_bytes = output.value
+        result = []
+        # Since we don't have a vectorized version of PersianScriptToUnicode in C header yet,
+        # we can do it in Python or just use the Python core for decoding
+        # because decoding is usually less performance-critical than encoding.
+        from .core import persian_script_to_unicode
+        for b in script_bytes:
+            result.append(chr(persian_script_to_unicode(b)))
         
-        # Call the C function
-        c_lib.IransystemToUnicode(input_buffer, output_buffer)
-        
-        # Get the result
-        result_bytes = output_buffer.raw
-        # Find the null terminator
-        null_pos = result_bytes.find(b'\x00')
-        if null_pos != -1:
-            result_bytes = result_bytes[:null_pos]
-        else:
-            # Remove trailing null bytes
-            result_bytes = result_bytes.rstrip(b'\x00')
-        
-        return result_bytes.decode('utf-8')
-    except (UnicodeDecodeError, Exception):
+        return "".join(result)
+    except Exception:
         return None

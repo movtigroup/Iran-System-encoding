@@ -25,13 +25,12 @@ class TestEncodingFunctions(unittest.TestCase):
         self.assertIsInstance(encoded_visual, bytes)
         self.assertIsInstance(encoded_logical, bytes)
 
-    def test_encode_configuration_parameter(self):
-        """Test encoding with configuration parameter"""
+    def test_encode_configuration_parameter_removed(self):
+        """Test that configuration parameter is no longer supported"""
         text = "سلام"
-        config = {}
-        result = encode(text, configuration=config)
-        self.assertIsInstance(result, bytes)
-        self.assertGreater(len(result), 0)
+        # This should now raise a TypeError because configuration was removed
+        with self.assertRaises(TypeError):
+            encode(text, configuration={})
 
     def test_decode_function_basic(self):
         """Test basic decoding functionality"""
@@ -62,10 +61,9 @@ class TestEncodingFunctions(unittest.TestCase):
 
     def test_detect_locale_various_inputs(self):
         """Test locale detection with various inputs"""
-        # Persian dominant
+        # Any Persian letter triggers 'fa'
         self.assertEqual(detect_locale("سلام hello"), "fa")
-        # English dominant  
-        self.assertEqual(detect_locale("hello سلام"), "en")
+        self.assertEqual(detect_locale("hello سلام"), "fa")
         # Pure Persian
         self.assertEqual(detect_locale("سلام دنیا"), "fa")
         # Pure English

@@ -10,11 +10,11 @@ class TestConverter(unittest.TestCase):
         locale = detect_locale(text)
         self.assertEqual(locale, 'fa')
 
-    def test_detect_locale_english_dominant(self):
-        """Test that English-dominant text is detected as 'en'"""
+    def test_detect_locale_english_with_persian(self):
+        """Test that any Persian letter triggers 'fa' locale"""
         text = "Hello سلام"
         locale = detect_locale(text)
-        self.assertEqual(locale, 'en')
+        self.assertEqual(locale, 'fa')
 
     def test_detect_locale_equal_characters(self):
         """Test locale detection with equal Persian/English characters"""
@@ -66,11 +66,11 @@ class TestConverter(unittest.TestCase):
         self.assertIn("123", decoded)
 
     def test_persian_numbers_handling(self):
-        """Test handling of Persian numbers specifically"""
-        text = "۱۲۳"  # Persian numbers
+        """Test handling of Persian numbers specifically (should be ASCII if no letters)"""
+        text = "۱۲۳"  # Persian numbers, no letters -> English locale
         encoded = encode(text)
         decoded = decode(encoded)
-        self.assertEqual(decoded, "۱۲۳")
+        self.assertEqual(decoded, "123")
 
     def test_mixed_numbers_handling(self):
         """Test handling of mixed ASCII and Persian numbers"""

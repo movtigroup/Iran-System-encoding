@@ -8,5 +8,7 @@ void IransystemToUnicode(unsigned char *inString, unsigned char *outString);
 void IransystemToUpper(unsigned char *inString, unsigned char *outString);
 void Reverse(unsigned char *inString, unsigned char *outString);
 void ReverseAlphaNumeric(unsigned char *inString, unsigned char *outString);
+void ReverseIransystem(unsigned char *inString, unsigned char *outString);
+unsigned char UnicodeToPersianScript(unsigned int unicodeChar);
 
 #endif

@@ -12,7 +12,7 @@ with open(os.path.join(this_directory, "requirements.txt"), encoding="utf-8") as
 
 setup(
     name="iran-encoding",
-    version="1.0.0",
+    version="1.1.0",
     author="Community Contributors",
     author_email="community@example.com",
     description="Professional Iran System encoding library with Persian/English support",
@@ -51,10 +51,9 @@ setup(
             "iran-encoding=iran_encoding.cli:main",
         ],
     },
-    keywords=["persian", "farsi", "encoding", "text-processing", "localization"],
+    keywords=["persian", "farsi", "encoding", "iran-system", "text-processing"],
     project_urls={
         "Bug Reports": "https://github.com/movtigroup/Iran-System-encoding/issues",
         "Source": "https://github.com/movtigroup/Iran-System-encoding",
-        "Documentation": "https://github.com/movtigroup/Iran-System-encoding/wiki",
     },
 )
