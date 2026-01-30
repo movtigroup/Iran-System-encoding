@@ -53,24 +53,22 @@ class TestExactBehavior(unittest.TestCase):
                 self.assertGreater(len(decoded), 0)
 
     def test_word_combinations(self):
-        """Test known word combinations"""
-        # Known combinations from Iran System table
+        """Test known word combinations in visual order"""
+        # "سلام" -> م-ا-ل-س
+        # "برنامه" -> ه-م-ا-ن-ر-ب
         word_tests = [
-            (bytes([0xA8, 0xF3, 0x91, 0xF4]), "سلام"),
-            (bytes([0x93, 0xA4, 0xF7, 0x91, 0xF5, 0xF9]), "برنامه"),
+            (bytes([0xF4, 0x91, 0xF3, 0xA8]), "سلام"),
+            (bytes([0xF9, 0xF5, 0x91, 0xF7, 0xA4, 0x93]), "برنامه"),
         ]
         
         for byte_seq, expected in word_tests:
             with self.subTest(expected=expected):
                 decoded = decode(byte_seq)
-                self.assertIsInstance(decoded, str)
+                self.assertEqual(decoded, expected)
                 
-                # Test roundtrip: decode -> encode -> decode
+                # Test roundtrip
                 re_encoded = encode(decoded)
-                re_decoded = decode(re_encoded)
-                # The decoded text should be equivalent in meaning/content
-                self.assertIsInstance(re_decoded, str)
-                self.assertGreater(len(re_decoded), 0)
+                self.assertEqual(re_encoded, byte_seq)
 
     def test_visual_vs_logical_ordering(self):
         """Test the difference between visual and logical ordering"""
