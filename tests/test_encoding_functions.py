@@ -33,23 +33,23 @@ class TestEncodingFunctions(unittest.TestCase):
             encode(text, configuration={})
 
     def test_decode_function_basic(self):
-        """Test basic decoding functionality"""
-        # Use known mapping from the converter
-        iran_system_bytes = bytes([0xA8, 0xF3, 0x91, 0xF4])  # "سلام"
+        """Test basic decoding functionality with visual order"""
+        # "سلام" in visual order: م-ا-ل-س
+        iran_system_bytes = bytes([0xF4, 0x91, 0xF3, 0xA8])
         result = decode(iran_system_bytes)
         self.assertIsInstance(result, str)
         self.assertEqual(result, "سلام")
 
     def test_decode_hex_function_basic(self):
-        """Test basic hex decoding functionality"""
-        hex_string = "a8f391f4"  # "سلام" in Iran System
+        """Test basic hex decoding functionality with visual order"""
+        hex_string = "f491f3a8"  # "سلام" in visual order
         result = decode_hex(hex_string)
         self.assertIsInstance(result, str)
         self.assertEqual(result, "سلام")
 
     def test_decode_hex_with_spaces(self):
-        """Test hex decoding with spaces"""
-        hex_string = "a8 f3 91 f4"  # "سلام" with spaces
+        """Test hex decoding with spaces and visual order"""
+        hex_string = "f4 91 f3 a8"  # "سلام" in visual order
         result = decode_hex(hex_string)
         self.assertIsInstance(result, str)
         self.assertEqual(result, "سلام")
