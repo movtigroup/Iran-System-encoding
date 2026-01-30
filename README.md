@@ -1,8 +1,6 @@
 # Iran System Encoding
 
-[![Python package CI](https://github.com/movtigroup/Iran-System-encoding/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/movtigroup/Iran-System-encoding/actions/workflows/ci.yml)[![Python Package using Conda](https://github.com/movtigroup/Iran-System-encoding/actions/workflows/python-package-conda.yml/badge.svg)](https://github.com/movtigroup/Iran-System-encoding/actions/workflows/python-package-conda.yml)
-[![Qodana Scan](https://github.com/movtigroup/Iran-System-encoding/actions/workflows/qodana-ci.yml/badge.svg)](https://github.com/movtigroup/Iran-System-encoding/actions/workflows/qodana-ci.yml)
-[![Publish Python Package to PyPI](https://github.com/movtigroup/Iran-System-encoding/actions/workflows/publish-to-pypi.yml/badge.svg)](https://github.com/movtigroup/Iran-System-encoding/actions/workflows/publish-to-pypi.yml)
+
 
 A Python package for encoding and decoding text using the Iran System character set, designed for environments that require visually correct Persian text but lack native support for Arabic script rendering.
 
