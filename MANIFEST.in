@@ -1,7 +1,6 @@
 include README.md
 include README.fa.md
 include LICENSE
-include requirements.txt
 recursive-include iran_encoding *.py *.c *.h
 recursive-include wiki *.md
 recursive-exclude tests *.py  # Include tests but they will be filtered during packaging
