@@ -1,104 +1,51 @@
-# Iran System Encoding 🇮🇷
+# Iran System Encoding Library for Python
 
 [![PyPI version](https://img.shields.io/pypi/v/iran-encoding.svg)](https://pypi.org/project/iran-encoding/)
+[![Python versions](https://img.shields.io/pypi/pyversions/iran-encoding.svg)](https://pypi.org/project/iran-encoding/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Python Versions](https://img.shields.io/pypi/pyversions/iran-encoding.svg)](https://pypi.org/project/iran-encoding/)
 
-A high-performance, professional Python library for the legacy **Iran System** character encoding. This package provides symmetrical encoding and decoding with automatic locale detection, smart number handling, and an exact port of the original C logic.
+A high-performance, professional library for converting between Unicode and the legacy **Iran System** visual encoding.
 
----
+## ✨ Features
 
-## 🚀 Key Features
+- **🚀 Dual Core Engine**: Fast C extension with a 100% pure Python fallback.
+- **📦 Zero Dependencies**: No external libraries required (`arabic_reshaper` and `python-bidi` are now built-in).
+- **🧠 Smart Visual RTL**: Advanced context-aware engine that handles mixed Persian and English text correctly.
+- **🔢 Number Reversal**: Support for visual number reversal (e.g., "10" becoming "01" in the byte stream) as required by legacy systems.
+- **🛡️ Industrial Grade**: Full support for all Persian characters, ligatures (Lam-Alef), and visual forms.
 
-- **✅ Bidirectional Conversion**: Seamlessly convert between Unicode and Iran System encoding.
-- **✅ Pure Python Core**: Zero external dependencies. We removed `arabic_reshaper` and `python-bidi` to provide a faster and more stable internal implementation.
-- **✅ C Extension Support**: Includes a high-performance C source for optional compilation, delivering maximum speed.
-- **✅ Intelligent Locale Detection**:
-  - **Context-Aware**: Automatically detects if the text is Persian (`fa`) or English (`en`).
-  - **Smart Numbers**: Automatically converts digits to Iran System format in Persian contexts, and keeps them as ASCII in English contexts.
-- **✅ Precise Visual Ordering**: Advanced **Global RTL** logic that ensures Persian text is visually reversed while English words and numbers remain Left-To-Right (LTR) in their correct relative positions. This ensures 100% compatibility with legacy visual terminals.
-- **✅ Command-Line Interface (CLI)**: A built-in tool for quick terminal-based operations.
-
----
-
-## 📦 Installation
+## 📥 Installation
 
 ```bash
 pip install iran-encoding
 ```
 
----
-
-## 🛠 Usage Guide
-
-### Python API
+## 🚀 Quick Start
 
 ```python
-import iran_encoding
+from iran_encoding import encode, decode
 
-# 1. Encoding (Unicode -> Iran System)
-# Automatically handles reshaping and visual ordering
-text = "سلام دنیا 123"
-encoded = iran_encoding.encode(text)
-print(encoded.hex())
+# Unicode to Iran System (Visual RTL)
+text = "سلام 123"
+encoded = encode(text)
+print(encoded.hex())  # Output: 81828320f491f3a8
 
-# 2. Decoding (Iran System -> Unicode)
-decoded = iran_encoding.decode(encoded)
-print(decoded) # Output: "سلام دنیا ۱۲۳"
-
-# 3. Smart Locale Detection
-# Persian letters trigger the 'fa' locale
-print(iran_encoding.detect_locale("Hello سلام")) # 'fa'
-
-# If only English text and numbers are present, it uses 'en'
-# and converts Persian digits to ASCII if necessary.
-print(iran_encoding.detect_locale("Hello ۱۲۳")) # 'en'
+# Iran System to Unicode
+decoded = decode(encoded)
+print(decoded)  # Output: سلام ۱۲۳
 ```
 
-### Command-Line Interface
+## 📖 Advanced Usage
 
-The library includes a CLI tool named `iran-encoding`:
+### Smart Global RTL
+The library uses a "Smart Global RTL" strategy. It reverses the entire line for visual display but detects English words and numbers, keeping them in their correct LTR order within the visual stream.
 
-```bash
-# Encode text to hex
-iran-encoding encode "سلام دنیا"
+### Persian vs English Digits
+- **English Digits** (`0-9`): Kept in LTR order (e.g., "123" stays "123").
+- **Persian Digits** (`۰-۹`): Visually reversed per legacy terminal requirements (e.g., "۱۰" becomes "۰۱").
 
-# Decode Iran System hex to Unicode
-iran-encoding decode-hex "a8 f3 91 f4"
+## 🛠️ Performance
+For heavy workloads, the library automatically uses a compiled C extension. If GCC is not available during installation, it seamlessly falls back to the optimized Python implementation.
 
-# Decode raw byte string literal
-iran-encoding decode "b'\xa8\xf3\x91\xf4'"
-```
-
----
-
-## ⚙️ Technical Overview
-
-Unlike modern Unicode, **Iran System** is a visual encoding. This means the specific byte code for a letter depends on its shape (initial, medial, final, or isolated).
-
-This library utilizes a verified port of legacy C algorithms to:
-1.  **Reshape** characters based on surrounding context.
-2.  **Order** the visual layout for right-to-left display.
-3.  **Handle Alphanumeric** sequences correctly within bi-directional text.
-
-Our implementation ensures **100% compatibility** with legacy databases and hardware terminals.
-
----
-
-## 🧪 Testing & Quality
-
-We prioritize reliability. Our test suite covers 100% of the core conversion logic:
-
-```bash
-python3 -m pytest tests/
-```
-
----
-
-## 📄 License & Support
-
-- **License**: MIT License - see the [LICENSE](LICENSE) file for details.
-- **Support**: For professional support and inquiries, contact [Iran-System-encoding@movtigroup.ir](mailto:Iran-System-encoding@movtigroup.ir).
-- **Author**: Iran System encoding (MovtiGroup)
-
-Contributions are welcome! Please feel free to open an issue or submit a pull request on our [GitHub repository](https://github.com/movtigroup/Iran-System-encoding).
+## 📄 License
+MIT License. Created and maintained for the Iranian developer community.
