@@ -9,11 +9,13 @@ from typing import List, Union, Optional
 UNICODE_NUMBER_STR: List[int] = [0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39]
 IRANSYSTEM_NUMBER_STR: List[int] = [0x80, 0x81, 0x82, 0x83, 0x84, 0x85, 0x86, 0x87, 0x88, 0x89]
 
+# Unicode mapping table (Intermediate Script Code -> Iran System Form)
 UNICODE_STR: List[int] = [
     0xC2, 0xC8, 0x81, 0xCA, 0xCB, 0xCC, 0x8D, 0xCD, 0xCE, 0xCF, 0xD0, 0xD1, 0xD2,
     0x8E, 0xD3, 0xD4, 0xD5, 0xD6, 0xD8, 0xD9, 0xDD, 0xDE, 0x98, 0x90, 0xE1, 0xE3,
-    0xE4, 0xE6, 0x80, 0x8A, 0x82, 0x83, 0x84, 0x85, 0x86, 0x87, 0x88, 0x89, 0x20,
-    0xA1, 0xC1
+    0xE4, 0xE6,
+    0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, # Use ASCII script codes for digits
+    0x20, 0xA1, 0xC1
 ]
 
 IRANSYSTEM_UPPER_STR: List[int] = [
@@ -60,18 +62,14 @@ WIDE_CHAR_STR: List[int] = [
     0x00C6
 ]
 
+# Intermediate script bytes. We use ASCII for digits to avoid collision with letters.
 UTF8_STR: List[int] = [
     0xC2, 0xC8, 0x81, 0xCA, 0xCB, 0xCC, 0x8D, 0xCD, 0xCE, 0xCF, 0xD0, 0xD1, 0xD2,
     0x8E, 0xD3, 0xD4, 0xD5, 0xD6, 0xD8, 0xD9, 0xDA, 0xDB, 0xDD, 0xDE, 0x98, 0x90,
-    0xE1, 0xE3, 0xE4, 0xE6, 0xE5, 0xED, 0x80, 0x8A, 0x82, 0x83, 0x84, 0x85, 0x86,
-    0x87, 0x88, 0x89, 0x20, 0xA1, 0xC7, 0xED, 0xED, 0xC1, 0x98, 0x98, 0xC1
+    0xE1, 0xE3, 0xE4, 0xE6, 0xE5, 0xED,
+    0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, # Digits map to ASCII
+    0x20, 0xA1, 0xC7, 0xED, 0xED, 0xC1, 0x98, 0x98, 0xC1
 ]
-
-
-def is_digit_irs(c: Union[int, str]) -> bool:
-    """Check if character is a digit or Iran System digit."""
-    val = c if isinstance(c, int) else ord(c)
-    return (ord('0') <= val <= ord('9')) or (0x80 <= val <= 0x89)
 
 
 def find_pos(in_byte: int, area_list: List[int]) -> int:
@@ -106,49 +104,35 @@ def iransystem_to_upper(in_bytes: bytes) -> bytes:
     return bytes(out_list)
 
 
-def reverse_persian_chunks(in_bytes: bytes) -> bytes:
+def reverse_visual_rtl(in_bytes: bytes) -> bytes:
     """
-    Reverse only the Persian character sequences in a byte stream,
-    maintaining the logical order of other characters (English, numbers, symbols).
-    Persian letters and symbols (>= 0x8A) are reversed, while digits (0x80-0x89)
-    and ASCII (< 0x80) are kept in their logical LTR order.
+    Implements Global RTL reversal with local chunk correction.
+    1. Reverses the entire stream.
+    2. Identifies contiguous chunks of ASCII (> 0x20) and Persian digits (0x80-0x89)
+       and un-reverses them to keep LTR.
     """
-    length = len(in_bytes)
-    out = bytearray(in_bytes)
+    # Step 1: Global reverse
+    reversed_data = bytearray(in_bytes[::-1])
+    length = len(reversed_data)
+
+    # Step 2: Fix chunks (Alphanumeric chunks should remain LTR)
     start = -1
-
     for i in range(length + 1):
-        current = in_bytes[i] if i < length else 0x00
+        current = reversed_data[i] if i < length else -1
 
-        # In Iran System:
-        # 0x80-0x89: Persian digits (keep LTR)
-        # 0x8A-0xFE: Persian letters and symbols (reverse for visual RTL)
-        # < 0x80: ASCII (keep LTR)
-        is_reversible = (0x8A <= current <= 0xFE)
+        # Chunks to un-reverse: Non-space ASCII (0x21-0x7F) or Persian Digits (0x80-0x89)
+        # Spaces (0x20) and Persian letters (>= 0x8A) act as boundaries.
+        is_fixed_chunk = (current != -1) and ((0x21 <= current <= 0x7F) or (0x80 <= current <= 0x89))
 
-        if is_reversible:
+        if is_fixed_chunk:
             if start == -1:
                 start = i
         else:
             if start != -1:
-                # Reverse the found Persian chunk [start:i]
-                chunk = out[start:i]
-                out[start:i] = chunk[::-1]
+                chunk = reversed_data[start:i]
+                reversed_data[start:i] = chunk[::-1]
                 start = -1
-    return bytes(out)
-
-
-def unicode_number_to_iransystem(unicode_str: str) -> bytes:
-    """Convert Unicode numbers to Iran System numbers."""
-    in_bytes = unicode_str.encode('utf-8', errors='replace')
-    out_list = []
-    for b in in_bytes:
-        pos_index = find_pos(b, UNICODE_NUMBER_STR)
-        if pos_index >= 0:
-            out_list.append(IRANSYSTEM_NUMBER_STR[pos_index])
-        else:
-            out_list.append(b)
-    return bytes(out_list)
+    return bytes(reversed_data)
 
 
 def unicode_to_persian_script(unicode_char_code: int) -> int:
@@ -163,7 +147,7 @@ def unicode_to_persian_script(unicode_char_code: int) -> int:
 def unicode_to_iransystem(unicode_string: str, reverse_flag: bool = True) -> bytes:
     """
     Main function to convert Unicode string to Iran System bytes.
-    Applies contextual reshaping and optional Persian-only reversal.
+    Applies contextual reshaping and Global RTL visual reversal.
     """
     # Step 1: Convert Unicode to the intermediate "Persian Script" bytes in logical order
     script_bytes = bytearray()
@@ -182,7 +166,8 @@ def unicode_to_iransystem(unicode_string: str, reverse_flag: bool = True) -> byt
         current_byte = input_codes[i]
         pos_index = find_pos(current_byte, UNICODE_STR)
 
-        if pos_index >= 0:
+        # Collision Check: Only treat as letter if not a digit code
+        if pos_index >= 0 and not (0x30 <= current_byte <= 0x39):
             if find_pos(next_byte, NEXT_CHAR_STR) >= 0:
                 result[i] = IRANSYSTEM_LOWER_STR[pos_index]
             else:
@@ -239,9 +224,9 @@ def unicode_to_iransystem(unicode_string: str, reverse_flag: bool = True) -> byt
                     if p_idx >= 0:
                         result[i] = IRANSYSTEM_NUMBER_STR[p_idx]
 
-    # Step 3: Perform reversal on Persian chunks if requested
+    # Step 3: Perform Global RTL reversal if requested
     if reverse_flag:
-        return reverse_persian_chunks(bytes(result))
+        return reverse_visual_rtl(bytes(result))
     return bytes(result)
 
 
@@ -251,16 +236,19 @@ def persian_script_to_unicode(utf8_char_byte: int) -> int:
     if pos_index >= 0:
         return WIDE_CHAR_STR[pos_index]
     else:
+        # Handle digits directly if we have Iran System digits
+        if 0x80 <= utf8_char_byte <= 0x89:
+            return WIDE_CHAR_STR[32 + (utf8_char_byte - 0x80)]
         return utf8_char_byte
 
 
 def iransystem_to_unicode(in_bytes: bytes) -> str:
     """
     Convert Iran System bytes to Unicode string.
-    Correctly handles visual order by un-reversing Persian chunks.
+    Correctly handles Global RTL visual order.
     """
-    # Step 1: Reverse Persian chunks back to logical order
-    logical_bytes = reverse_persian_chunks(in_bytes)
+    # Step 1: Reverse Global RTL back to logical order
+    logical_bytes = reverse_visual_rtl(in_bytes)
 
     # Step 2: Convert to upper (isolated/final) forms to handle all visual variants
     upper_bytes = iransystem_to_upper(logical_bytes)

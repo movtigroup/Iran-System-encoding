@@ -27,11 +27,11 @@ Determines if text contains Persian characters.
 ## Intelligent Behavior
 
 ### Mixed Language Strings
-- The library uses a sophisticated **in-place reversal** logic for mixed text.
-- **English and Numbers** remain in their logical Left-To-Right (LTR) order even when part of a Persian sequence.
-- **Persian letters and symbols** are correctly reversed for visual display.
-- This ensures that a string like `"hi سلام 123"` results in a byte stream that displays correctly on visual terminals.
-- If a string contains **only English letters and numbers**, it is processed using the English (ASCII) flow for maximum compatibility.
+- The library implements **Global RTL** reversal with local chunk correction.
+- When encoding mixed text (e.g., `"hi سلام 123"`), the entire line is oriented for Right-To-Left display.
+- **English words and Numbers** are automatically identified as LTR chunks and are un-reversed to maintain their internal logical order.
+- This ensures that on a visual terminal, the text appears as: `123 سلام hi` (which is the correct RTL visual layout of the logical input).
+- If a string contains **only ASCII characters**, it is processed using a standard logical flow to ensure compatibility with modern English text systems.
 
 ## Performance Optimization
 For high-volume processing, it is recommended to compile the C extension:

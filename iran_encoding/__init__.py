@@ -66,9 +66,12 @@ def decode(iransystem_bytes):
     Returns:
         str: Decoded Unicode string.
     """
-    # If the bytes look like pure ASCII (all < 128) and we don't see typical Iran System markers,
-    # it might just be ASCII. However, Iran System is a superset of ASCII for 0-127.
-    # The core logic handles this correctly.
+    # Iran System is a visual encoding. Pure ASCII bytes are typically logical.
+    # If no bytes >= 128 are present, we treat it as logical ASCII.
+    if not any(b >= 128 for b in iransystem_bytes):
+        return iransystem_bytes.decode('ascii', errors='replace')
+
+    # Use the core Iran System logic for visual RTL decoding
     return iransystem_to_unicode(iransystem_bytes)
 
 def decode_hex(hex_string):

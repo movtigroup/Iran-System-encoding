@@ -65,8 +65,8 @@ def _load_c_library():
         lib.UnicodeNumberToIransystem.argtypes = [ctypes.c_char_p, ctypes.c_char_p]
         lib.UnicodeNumberToIransystem.restype = None
         
-        lib.ReversePersianChunks.argtypes = [ctypes.c_char_p, ctypes.c_char_p]
-        lib.ReversePersianChunks.restype = None
+        lib.ReverseVisualRTL.argtypes = [ctypes.c_char_p, ctypes.c_char_p]
+        lib.ReverseVisualRTL.restype = None
         
         lib.UnicodeToPersianScript.argtypes = [ctypes.c_uint]
         lib.UnicodeToPersianScript.restype = ctypes.c_ubyte
