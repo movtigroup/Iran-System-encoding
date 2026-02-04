@@ -33,6 +33,7 @@ Determines if text contains Persian characters.
 - This ensures that on a visual terminal, the text appears as: `123 سلام hi` (which is the correct RTL visual layout of the logical input).
 - If a string contains **only ASCII characters**, it is processed using a standard logical flow to ensure compatibility with modern English text systems.
 
+
 ## Performance Optimization
 For high-volume processing, it is recommended to compile the C extension:
 ```bash

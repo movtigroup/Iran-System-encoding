@@ -19,7 +19,7 @@ setup(
     name="iran-encoding",
     version="1.2.0",
     author="Jules",
-    author_email="jules@example.com",
+    author_email="jules@movtigroup.ir",
     description="High-performance Iran System visual encoding converter (Unicode <-> IranSystem)",
     long_description=long_description,
     long_description_content_type="text/markdown",

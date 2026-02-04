@@ -41,6 +41,7 @@ static const unsigned int WIDE_CHAR_STR[] = {
     0x0639, 0x063A, 0x0641, 0x0642, 0x06A9, 0x06AF, 0x0644, 0x0645, 0x0646, 0x0648,
     0x0647, 0x06CC, 0x06F0, 0x06F1, 0x06F2, 0x06F3, 0x06F4, 0x06F5, 0x06F6, 0x06F7,
     0x06F8, 0x06F9, 0x0020, 0x060C, 0x0627, 0x0626, 0x064A, 0x0621, 0x0643, 0x02DC,
+
     0x00C6
 };
 
@@ -94,6 +95,60 @@ void unicode_to_iransystem(const char *utf8_in, unsigned char *out, int *out_len
             unsigned char c = (i < len) ? out[i] : 0;
             if (c >= 0x21 && c <= 0x7E) { if (start == -1) start = i; }
             else { if (start != -1) { for (int j = 0; j < (i - start) / 2; j++) { unsigned char tmp = out[start + j]; out[start + j] = out[i - 1 - j]; out[i - 1 - j] = tmp; } start = -1; } }
+    outString[len] = 0;
+}
+
+void ReverseAlphaNumeric(unsigned char *inString, unsigned char *outString) {
+    unsigned int byteCount, numberCount;
+    unsigned int numberPosition = 0;
+    unsigned int len = strlen((char*)inString);
+
+    for (byteCount = 0; byteCount <= len; byteCount++) {
+        unsigned char current = (byteCount < len) ? inString[byteCount] : 0xFF;
+
+        // Trigger reversal on Persian letters or special markers
+        int is_trigger = (current > 0x8C && current != 0xFF) || current < 0x20 || current == 0x8E || current == 0x8F;
+        if (is_trigger || byteCount == len) {
+            if ((byteCount - numberPosition) > 1) {
+                for (numberCount = numberPosition; numberCount < byteCount; numberCount++) {
+                    outString[numberCount] = inString[byteCount - (numberCount - numberPosition) - 1];
+                }
+            }
+            numberPosition = byteCount + 1;
+        }
+        if (byteCount < len) {
+            outString[byteCount] = inString[byteCount];
+        }
+    }
+    outString[len] = 0;
+}
+
+void IransystemToUnicode(unsigned char *inString, unsigned char *outString) {
+    unsigned int byteCount;
+    unsigned int len = strlen((char*)inString);
+    int posIndex;
+    unsigned char reversed[2048];
+    unsigned char logical[2048];
+
+    if (len >= 2048) len = 2047;
+
+    // Step 1: Reverse whole string to handle visual RTL input
+    for (byteCount = 0; byteCount < len; byteCount++) {
+        reversed[byteCount] = inString[len - 1 - byteCount];
+    }
+    reversed[len] = 0;
+
+    // Step 2: Fix chunks of English/numbers
+    ReverseAlphaNumeric(reversed, logical);
+
+    // Step 3: Convert to Unicode
+    for (byteCount = 0; byteCount < len; byteCount++) {
+        posIndex = FindPos(logical[byteCount], iransystemUpperStr);
+        if (posIndex < 0) {
+            posIndex = FindPos(logical[byteCount], iransystemUpperStrTail);
+            outString[byteCount] = (posIndex < 0) ? logical[byteCount] : unicodeStrTail[posIndex];
+        } else {
+            outString[byteCount] = unicodeStr[posIndex];
         }
     }
     for (int i = 0; i < len; i++) if (out[i] >= '0' && out[i] <= '9') out[i] = 0x80 + (out[i] - '0');
