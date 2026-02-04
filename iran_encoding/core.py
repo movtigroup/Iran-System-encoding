@@ -130,7 +130,6 @@ def reverse(in_bytes: bytes) -> bytes:
 def reverse_alpha_numeric(in_bytes: bytes) -> bytes:
     """
     Reverse alphanumeric sequences in a way that respects Iran System visual order.
-    Improved to treat numbers and symbols as part of reversible chunks.
     """
     length = len(in_bytes)
     out = bytearray(in_bytes)
@@ -139,10 +138,6 @@ def reverse_alpha_numeric(in_bytes: bytes) -> bytes:
     for byte_count in range(length + 1):
         current = in_bytes[byte_count] if byte_count < length else 0xFF
 
-        # Trigger reversal on Persian letters or special markers
-        # In Iran System, letters start from 0x8D (excluding some symbols)
-        is_trigger = (current > 0x8C and current != 0xFF) or current < 0x20 or current == 0x8E or current == 0x8F
-        if is_trigger or byte_count == length:
             if (byte_count - number_position) > 1:
                 for number_count in range(number_position, byte_count):
                     out[number_count] = in_bytes[byte_count - (number_count - number_position) - 1]
@@ -278,11 +273,6 @@ def unicode_to_iransystem(unicode_string: str, reverse_flag: bool = True) -> byt
                     if p_idx >= 0:
                         result[byte_count] = IRANSYSTEM_NUMBER_STR[p_idx]
 
-    final_result = bytes(result)
-    if reverse_flag:
-        # Final reversal for visual RTL systems
-        return final_result[::-1]
-    return final_result
 
 
 def persian_script_to_unicode(utf8_char_byte: int) -> int:
@@ -297,15 +287,7 @@ def persian_script_to_unicode(utf8_char_byte: int) -> int:
 def iransystem_to_unicode(in_bytes: bytes) -> str:
     """
     Convert Iran System bytes to Unicode string.
-    Ported from IransystemToUnicode in C, improved to handle all forms and visual order.
     """
-    # Step 1: Reverse whole string and fix chunks to get back to logical order
-    # (Assuming visual input)
-    reversed_bytes = in_bytes[::-1]
-    logical_bytes = reverse_alpha_numeric(reversed_bytes)
-
-    # Step 2: Convert to upper (isolated/final) forms to handle all visual variants
-    upper_bytes = iransystem_to_upper(logical_bytes)
 
     script_bytes = bytearray()
     for b in upper_bytes:
