@@ -10,7 +10,12 @@ Modern Unicode stores text in logical order (as it is read) and relies on the di
 ## Porting the C Engine
 The core of this library is a direct port of the logic from `iran_system.c`. This logic performs two main steps:
 1. **Contextual Reshaping**: It looks at the surrounding bytes to choose the correct visual form (initial, medial, final, isolated).
-2. **BiDi Handling**: It uses an algorithm similar to `ReverseAlphaNumeric` to ensure that numbers and English words embedded in Persian text are stored in a way that displays correctly on simple visual terminals.
+2. **BiDi Handling**: It uses a refined **In-place Persian reversal** algorithm to ensure that numbers and English words embedded in Persian text remain Left-To-Right (LTR) while Persian letters are correctly reversed for visual display.
+
+## Dual Implementation (Python & C)
+The library provides two engines for processing:
+1. **Pure Python Core**: A clean, zero-dependency implementation in `iran_encoding/core.py` that ensures compatibility across all Python environments (including PyPy and WASM).
+2. **C Extension**: A high-performance version in `iran_encoding/iran_system.c` that can be compiled for maximum throughput in production environments. Both engines are tested for 100% parity.
 
 ## Data Structures
-The mapping tables in `iran_encoding/core.py` (like `UNICODE_STR`, `IRANSYSTEM_UPPER_STR`, etc.) are byte-for-byte identical to the original implementation. This ensures parity when interacting with legacy databases that were written using the original C software.
+The mapping tables in `iran_encoding/core.py` (like `UNICODE_STR`, `IRANSYSTEM_UPPER_STR`, etc.) are byte-for-byte identical to the original legacy implementation, ensuring flawless integration with historical data.
