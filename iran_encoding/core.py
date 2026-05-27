@@ -140,8 +140,9 @@ def reverse_alpha_numeric(in_bytes: bytes) -> bytes:
         current = in_bytes[byte_count] if byte_count < length else 0xFF
 
         # Trigger reversal on Persian letters or special markers
-        # In Iran System, letters start from 0x8D (excluding some symbols)
-        is_trigger = (current > 0x8C and current != 0xFF) or current < 0x20 or current == 0x8E or current == 0x8F
+        # In Iran System, letters start from 0x8D (excluding Pe and some symbols)
+        is_trigger = (current > 0x8C and current != 0xFF) or current < 0x20 or \
+                     current == 0x8E or current == 0x8F or current == 0x81
         if is_trigger or byte_count == length:
             if (byte_count - number_position) > 1:
                 for number_count in range(number_position, byte_count):

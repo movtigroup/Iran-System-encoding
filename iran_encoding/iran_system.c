@@ -137,8 +137,9 @@ void ReverseAlphaNumeric(unsigned char *inString, unsigned char *outString) {
     for (byteCount = 0; byteCount <= len; byteCount++) {
         unsigned char current = (byteCount < len) ? inString[byteCount] : 0xFF;
 
-        // Trigger reversal on Persian letters or special markers
-        int is_trigger = (current > 0x8C && current != 0xFF) || current < 0x20 || current == 0x8E || current == 0x8F;
+        // Trigger reversal on Persian letters (including Pe at 0x81) or special markers
+        int is_trigger = (current > 0x8C && current != 0xFF) || current < 0x20 || \
+                         current == 0x8E || current == 0x8F || current == 0x81;
         if (is_trigger || byteCount == len) {
             if ((byteCount - numberPosition) > 1) {
                 for (numberCount = numberPosition; numberCount < byteCount; numberCount++) {
