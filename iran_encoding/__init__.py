@@ -8,7 +8,7 @@ ensuring consistent behavior and professional results.
 import re
 from .core import unicode_to_iransystem, iransystem_to_unicode
 
-__version__ = "1.1.2"
+__version__ = "1.1.3"
 __author__ = "Community Contributors"
 __all__ = ['encode', 'decode', 'decode_hex', 'detect_locale']
 
