@@ -2,63 +2,44 @@ import pytest
 import iran_encoding
 
 def test_pe_at_start():
-    """
-    Test that 'Pe' at the start of a word (possibly after a space)
-    is correctly handled by visual ordering.
-    """
-    text = "پلیس"
-    encoded = iran_encoding.encode(text)
-    # encoded:
-    # 'پلیس' (logical)
-    # script: 81 e1 ed d3
-    # reverse_alpha_numeric (if 81 is trigger): d3 ed e1 81
-    # unicode_to_iransystem logic (reshaping):
-    # d3 -> isolated sin (a7)
-    # ed -> medial ye (fe)
-    # e1 -> medial lam (f3)
-    # 81 -> initial pe (95)
-    # result: a7 fe f3 95
-    # final reversal: 95 f3 fe a7
-
-    # Wait, my reproduce_bug.py showed:
-    # Text: 'پلیس'
-    # Hex:  a7 fe f3 95
-    # Decoded: 'پلیس'
-
-    # Let's check " پلیس" (space + پلیس)
+    """Test 'Pe' at the start of words with leading spaces."""
     text_with_space = " پلیس"
     encoded_with_space = iran_encoding.encode(text_with_space)
-    # Currently: a7 fe f3 20 94
-    # Expected: 95 f3 fe a7 20
-
-    print(f"\nHex for ' پلیس': {encoded_with_space.hex(' ')}")
-
-    # If it's correctly ordered, ' ' (20) should be at the end (left-most in visual)
-    # or start depending on how we define it, but it should NOT be in the middle of the word.
-
-    # In Iran System, visual 95 f3 fe a7 20 means " پلیس"
-    # Current output a7 fe f3 20 94 means " پ لیس" (because 20 interrupted the word)
-
-    assert encoded_with_space.endswith(b'\x20') or encoded_with_space.startswith(b'\x20')
-    # Actually, visual RTL means if Unicode is " پلیس",
-    # visual order should be "س ی ل پ "
-    # Hex: a7 fe f3 95 20
-
     assert encoded_with_space.hex() == "a7fef39520"
 
-def test_pe_vs_be():
-    """Compare 'Pe' behavior with 'Be' which works."""
-    be_text = " بلیس"
-    pe_text = " پلیس"
+def test_user_requested_cases():
+    """Test specific words requested by the user."""
+    cases = ["پارمیس", "هیپ هاپ", "هیپاپلوجیست", "شاه پالایشگاه"]
+    for case in cases:
+        res = iran_encoding.encode(case)
+        decoded = iran_encoding.decode(res)
+        assert decoded == case, f"Failed for word '{case}'"
 
-    be_encoded = iran_encoding.encode(be_text)
-    pe_encoded = iran_encoding.encode(pe_text)
+def test_100_chars():
+    """Test a long string of various characters to ensure stability."""
+    # Mixing Pe with other characters and spaces
+    long_text = "پ" * 50 + " " + "ب" * 50
+    res = iran_encoding.encode(long_text)
+    decoded = iran_encoding.decode(res)
+    assert decoded == long_text
 
-    # be_encoded should be a7 fe f3 93 20
-    # pe_encoded should be a7 fe f3 95 20
+def test_trigger_audit():
+    """
+    Ensure all Persian characters that should be triggers ARE triggers.
+    Any character in UTF8_STR that corresponds to a Persian letter should be a trigger.
+    """
+    from iran_encoding.core import UTF8_STR, WIDE_CHAR_STR
 
-    assert be_encoded.endswith(b'\x20')
-    assert pe_encoded.endswith(b'\x20'), f"Pe encoded as {pe_encoded.hex()} should end with space"
+    def is_trigger(code):
+        return (code > 0x8C and code != 0xFF) or code < 0x20 or                code == 0x8E or code == 0x8F or code == 0x81
+
+    for i, code in enumerate(UTF8_STR):
+        u_code = WIDE_CHAR_STR[i]
+        # If it's a Persian letter (approx range 0x0600-0x06FF)
+        if 0x0600 <= u_code <= 0x06FF:
+            # Exclude digits as they are handled in chunks
+            if not (0x06F0 <= u_code <= 0x06F9):
+                assert is_trigger(code), f"Character U+{u_code:04X} (code {hex(code)}) should be an RTL trigger"
 
 if __name__ == "__main__":
     pytest.main([__file__])
